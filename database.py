@@ -17,7 +17,7 @@ if not DATABASE_URL:
     DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'sentiment.db')}"
 elif DATABASE_URL.startswith("postgres://"):
     # Render provides database URLs starting with postgres://, but SQLAlchemy strictly requires postgresql://
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
 
 # SQLite requires check_same_thread=False; PostgreSQL does not
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
