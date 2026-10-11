@@ -7,14 +7,25 @@ import os
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Database file location in the project root
+# Database configuration
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'sentiment.db')}")
 
-# SQLite requires check_same_thread=False when used across multiple FastAPI request threads
+# Read database URL from environment variable, falling back to local SQLite if missing
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'sentiment.db')}"
+elif DATABASE_URL.startswith("postgres://"):
+    # Render provides database URLs starting with postgres://, but SQLAlchemy strictly requires postgresql://
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# SQLite requires check_same_thread=False; PostgreSQL does not
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+    connect_args=connect_args,
+    pool_pre_ping=True
 )
 
 # SessionLocal class for creating new DB sessions per request
