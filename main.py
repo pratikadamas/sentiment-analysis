@@ -63,7 +63,7 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 os.makedirs(TEMPLATES_DIR, exist_ok=True)
 os.makedirs(STATIC_DIR, exist_ok=True)
 
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 # Mount authentication routes (/register, /login, /me)

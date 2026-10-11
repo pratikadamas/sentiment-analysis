@@ -23,6 +23,10 @@ function toggleTheme() {
 // Synchronize any theme toggle buttons on the page with current theme state
 function syncThemeToggleIcons(isDark) {
   const toggleButtons = document.querySelectorAll('.theme-toggle-btn');
+  if (!toggleButtons || toggleButtons.length === 0) {
+    return;
+  }
+
   toggleButtons.forEach(btn => {
     btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
     btn.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode');
@@ -56,13 +60,27 @@ if (window.matchMedia) {
   });
 }
 
-// Attach event listeners to all theme toggle buttons on DOMContentLoaded
-document.addEventListener('DOMContentLoaded', () => {
-  const isDark = document.documentElement.classList.contains('dark');
-  syncThemeToggleIcons(isDark);
+// Attach event listeners and sync icons safely across all states
+function initThemeUI() {
+  const toggleButtons = document.querySelectorAll('.theme-toggle-btn');
+  if (toggleButtons && toggleButtons.length > 0) {
+    const isDark = document.documentElement.classList.contains('dark');
+    syncThemeToggleIcons(isDark);
 
-  document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
-    btn.removeEventListener('click', toggleTheme);
-    btn.addEventListener('click', toggleTheme);
-  });
-});
+    toggleButtons.forEach(btn => {
+      btn.removeEventListener('click', toggleTheme);
+      btn.addEventListener('click', toggleTheme);
+    });
+  }
+}
+
+// Expose on window for manual invocations
+window.toggleTheme = toggleTheme;
+window.initThemeUI = initThemeUI;
+
+// Handle both uncompleted and already-completed DOM ready states
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initThemeUI);
+} else {
+  initThemeUI();
+}
