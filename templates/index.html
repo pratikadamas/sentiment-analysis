@@ -67,6 +67,16 @@
       box-shadow: 0 0 35px -5px rgba(99, 102, 241, 0.35);
     }
   </style>
+
+  <!-- Auth Guard: Redirect unauthenticated visitors immediately -->
+  <script>
+    (function() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.replace('/login');
+      }
+    })();
+  </script>
 </head>
 <body class="bg-[#0b0f19] text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white">
 
@@ -92,16 +102,36 @@
         </div>
       </div>
 
-      <!-- Header Status & Docs Link -->
-      <div class="flex items-center space-x-4 text-sm">
-        <div id="system-status-badge" class="flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+      <!-- Header Status, Docs Link & User Controls -->
+      <div class="flex items-center space-x-3 text-sm">
+        <div id="system-status-badge" class="hidden sm:flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span class="text-xs font-medium">Model Ready</span>
         </div>
-        <a href="/docs" target="_blank" class="hidden sm:inline-flex items-center space-x-1 text-slate-400 hover:text-white transition-colors text-xs border border-slate-700/80 rounded-lg px-2.5 py-1.5 hover:bg-slate-800/50">
+        <a href="/docs" target="_blank" class="hidden md:inline-flex items-center space-x-1 text-slate-400 hover:text-white transition-colors text-xs border border-slate-700/80 rounded-lg px-2.5 py-1.5 hover:bg-slate-800/50">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-          <span>FastAPI Docs</span>
+          <span>Docs</span>
         </a>
+
+        <!-- User Profile Badge & Logout Button -->
+        <div class="flex items-center space-x-2 pl-2 sm:pl-3 border-l border-slate-800">
+          <div class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/70 text-xs">
+            <div class="w-5 h-5 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-[10px] text-white font-bold">
+              <span id="user-avatar-initial">U</span>
+            </div>
+            <span id="user-display-name" class="font-medium text-slate-200 max-w-[100px] truncate">User</span>
+          </div>
+          <button 
+            id="logout-btn" 
+            title="Sign out of SentimentPulse"
+            class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all duration-150 cursor-pointer"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -357,6 +387,30 @@
 
   <!-- Vanilla JavaScript Logic -->
   <script>
+    // Authentication State & Logout
+    const authToken = localStorage.getItem('token');
+    const currentUsername = localStorage.getItem('username') || 'User';
+
+    const userDisplayName = document.getElementById('user-display-name');
+    const userAvatarInitial = document.getElementById('user-avatar-initial');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    if (userDisplayName) {
+      userDisplayName.textContent = currentUsername;
+    }
+    if (userAvatarInitial) {
+      userAvatarInitial.textContent = currentUsername.charAt(0).toUpperCase();
+    }
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('email');
+        window.location.href = '/login';
+      });
+    }
+
     // DOM Elements
     const sentimentInput = document.getElementById('sentiment-input');
     const charCounter = document.getElementById('char-counter');
@@ -494,11 +548,22 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
           },
           body: JSON.stringify({ text: text })
         });
 
         const elapsedMs = Math.round(performance.now() - startTime);
+
+        if (response.status === 401) {
+          showError('Session expired or unauthorized. Redirecting to sign in...');
+          localStorage.removeItem('token');
+          localStorage.removeItem('username');
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1200);
+          return;
+        }
 
         if (!response.ok) {
           const errData = await response.json().catch(() => ({ detail: 'Failed to process request.' }));

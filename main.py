@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from typing import Dict, List, Optional
 import logging
 
-from fastapi import FastAPI, HTTPException, status, Request
+from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -21,14 +21,18 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from pydantic import BaseModel, Field, field_validator
 
 from model import SentimentAnalyzer
+from database import init_db, User
+from auth import router as auth_router, get_current_user
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Lifespan context manager to load and warm up the model
+# Lifespan context manager to load and warm up the model and ensure DB tables exist
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Initializing SQLite database tables...")
+    init_db()
     logger.info("Initializing SentimentAnalyzer model during startup...")
     app.state.analyzer = SentimentAnalyzer()
     logger.info("Model preloaded and ready for incoming inference requests.")
@@ -37,8 +41,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Sentiment Analysis API",
-    description="High-performance async REST API for 3-class sentiment analysis (positive, neutral, negative).",
-    version="1.0.0",
+    description="High-performance async REST API with JWT Auth for 3-class sentiment analysis (positive, neutral, negative).",
+    version="1.1.0",
     lifespan=lifespan
 )
 
@@ -61,6 +65,9 @@ os.makedirs(STATIC_DIR, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+# Mount authentication routes (/register, /login, /me)
+app.include_router(auth_router)
 
 
 # ==========================================
@@ -147,13 +154,31 @@ async def serve_index(request: Request):
         <head><title>Sentiment Analysis API</title></head>
         <body style="font-family: sans-serif; text-align: center; padding: 50px;">
             <h2>Sentiment Analysis API is Running</h2>
-            <p>Phase 2 (FastAPI Backend) is active!</p>
+            <p>Phase 2 (FastAPI Backend with Auth) is active!</p>
             <p>Interactive API Docs: <a href="/docs">/docs</a> | Healthcheck: <a href="/health">/health</a></p>
         </body>
         </html>
         """,
         status_code=200
     )
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def serve_login(request: Request):
+    """Renders the login page template."""
+    login_path = os.path.join(TEMPLATES_DIR, "login.html")
+    if os.path.exists(login_path):
+        return FileResponse(login_path)
+    return HTMLResponse("<h2>Login Page</h2><p>Template under construction.</p>", status_code=200)
+
+
+@app.get("/register", response_class=HTMLResponse)
+async def serve_register(request: Request):
+    """Renders the register page template."""
+    register_path = os.path.join(TEMPLATES_DIR, "register.html")
+    if os.path.exists(register_path):
+        return FileResponse(register_path)
+    return HTMLResponse("<h2>Register Page</h2><p>Template under construction.</p>", status_code=200)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["System"])
@@ -172,9 +197,12 @@ async def healthcheck():
 
 @app.post("/predict", response_model=SentimentResponse, tags=["Inference"])
 @app.post("/api/predict", response_model=SentimentResponse, tags=["Inference"])
-async def predict_sentiment(payload: SentimentRequest):
+async def predict_sentiment(
+    payload: SentimentRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
-    Analyzes the sentiment of a single input string.
+    Analyzes the sentiment of a single input string. Requires a valid JWT token.
     Returns the predicted class (positive, neutral, negative), confidence, and full score distribution.
     """
     try:
@@ -201,9 +229,12 @@ async def predict_sentiment(payload: SentimentRequest):
 
 @app.post("/predict/batch", response_model=BatchSentimentResponse, tags=["Inference"])
 @app.post("/api/predict/batch", response_model=BatchSentimentResponse, tags=["Inference"])
-async def predict_batch_sentiment(payload: BatchSentimentRequest):
+async def predict_batch_sentiment(
+    payload: BatchSentimentRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
-    Analyzes sentiment for a batch of text strings (up to 50 at a time).
+    Analyzes sentiment for a batch of text strings (up to 50 at a time). Requires a valid JWT token.
     """
     analyzer: SentimentAnalyzer = app.state.analyzer
     results: List[SentimentResponse] = []
