@@ -36,13 +36,12 @@ class TestSentimentModel(unittest.TestCase):
             self.analyzer.predict("   ")
 
     def test_model_artifact_loading_and_probabilities_sum_to_one(self):
-        """Verify sentiment_model.joblib loads cleanly and predict_proba sums to ~1.0."""
+        """Verify sentiment_model.onnx and tokenizer exist and predict scores sum to ~1.0."""
         import os
-        import joblib
-        model_path = os.path.join(os.path.dirname(__file__), "sentiment_model.joblib")
-        self.assertTrue(os.path.exists(model_path), "sentiment_model.joblib must exist")
-        loaded_model = joblib.load(model_path)
-        self.assertTrue(hasattr(loaded_model, "predict_proba"))
+        model_path = os.path.join(os.path.dirname(__file__), "sentiment_model.onnx")
+        tokenizer_path = os.path.join(os.path.dirname(__file__), "tokenizer", "tokenizer.json")
+        self.assertTrue(os.path.exists(model_path), "sentiment_model.onnx must exist")
+        self.assertTrue(os.path.exists(tokenizer_path), "tokenizer/tokenizer.json must exist")
 
         sample_texts = [
             "This product exceeded all my expectations! Highly recommended.",
@@ -50,9 +49,6 @@ class TestSentimentModel(unittest.TestCase):
             "The service was awful and completely unacceptable."
         ]
         for sample in sample_texts:
-            raw_probs = loaded_model.predict_proba([sample])[0]
-            self.assertAlmostEqual(float(sum(raw_probs)), 1.0, places=4)
-
             res = self.analyzer.predict(sample)
             scores_sum = sum(res["scores"].values())
             self.assertAlmostEqual(scores_sum, 1.0, places=3)
