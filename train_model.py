@@ -66,7 +66,7 @@ def tune_hyperparameters(X_train, y_train, X_val, y_val):
     Prints the results table and returns the best hyperparameters.
     """
     C_values = [0.5, 1.0, 3.0, 10.0]
-    ngram_ranges = [(1, 1), (1, 2)]
+    ngram_ranges = [(1, 1)]
 
     results = []
     print("\n" + "=" * 66)
@@ -74,8 +74,8 @@ def tune_hyperparameters(X_train, y_train, X_val, y_val):
     print("=" * 66)
 
     for ngram in ngram_ranges:
-        print(f"\nVectorizing with ngram_range={ngram} (sublinear_tf=True)...", flush=True)
-        vec = TfidfVectorizer(ngram_range=ngram, sublinear_tf=True, lowercase=True)
+        print(f"\nVectorizing with ngram_range={ngram} (sublinear_tf=True, max_features=20000)...", flush=True)
+        vec = TfidfVectorizer(ngram_range=ngram, max_features=20000, sublinear_tf=True, lowercase=True)
         X_train_vec = vec.fit_transform(X_train)
         X_val_vec = vec.transform(X_val)
 
@@ -136,6 +136,7 @@ def build_and_train_model(data_dir: str = "data", output_dir: str = "."):
     base_pipeline = Pipeline([
         ("tfidf", TfidfVectorizer(
             ngram_range=best_ngram,
+            max_features=20000,
             sublinear_tf=True,
             lowercase=True
         )),
@@ -192,7 +193,8 @@ def build_and_train_model(data_dir: str = "data", output_dir: str = "."):
     # 5. Save model artifact
     model_path = os.path.join(output_dir, "sentiment_model.joblib")
     joblib.dump(final_model, model_path)
-    print(f"Saved calibrated model to: {model_path}")
+    model_size_mb = os.path.getsize(model_path) / (1024 * 1024)
+    print(f"Saved calibrated model to: {model_path} ({model_size_mb:.2f} MB)")
 
     # 6. Save model metrics JSON
     metrics_path = os.path.join(output_dir, "model_metrics.json")
@@ -214,6 +216,7 @@ def build_and_train_model(data_dir: str = "data", output_dir: str = "."):
         "chosen_hyperparameters": {
             "C": best_C,
             "ngram_range": list(best_ngram),
+            "max_features": 20000,
             "calibration_method": "sigmoid",
             "cv": 3,
             "sublinear_tf": True

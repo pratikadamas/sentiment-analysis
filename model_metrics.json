@@ -14,31 +14,32 @@
     "3, 4": "positive"
   },
   "chosen_hyperparameters": {
-    "C": 1.0,
+    "C": 0.5,
     "ngram_range": [
       1,
-      2
+      1
     ],
+    "max_features": 20000,
     "calibration_method": "sigmoid",
     "cv": 3,
     "sublinear_tf": true
   },
-  "test_macro_f1": 0.7491,
-  "accuracy": 0.7514,
+  "test_macro_f1": 0.7295,
+  "accuracy": 0.7327,
   "per_class_f1": {
-    "negative": 0.7969,
-    "neutral": 0.6466,
-    "positive": 0.8038
+    "negative": 0.7774,
+    "neutral": 0.6196,
+    "positive": 0.7915
   },
   "per_class_precision": {
-    "negative": 0.7796,
-    "neutral": 0.6784,
-    "positive": 0.7868
+    "negative": 0.7557,
+    "neutral": 0.6611,
+    "positive": 0.7694
   },
   "per_class_recall": {
-    "negative": 0.815,
-    "neutral": 0.6176,
-    "positive": 0.8216
+    "negative": 0.8004,
+    "neutral": 0.583,
+    "positive": 0.8148
   },
   "tuning_results": [
     {
@@ -47,8 +48,8 @@
         1,
         1
       ],
-      "val_macro_f1": 0.7331,
-      "val_accuracy": 0.7337
+      "val_macro_f1": 0.7353,
+      "val_accuracy": 0.7357
     },
     {
       "C": 1.0,
@@ -65,8 +66,8 @@
         1,
         1
       ],
-      "val_macro_f1": 0.727,
-      "val_accuracy": 0.7275
+      "val_macro_f1": 0.7236,
+      "val_accuracy": 0.7243
     },
     {
       "C": 10.0,
@@ -74,46 +75,10 @@
         1,
         1
       ],
-      "val_macro_f1": 0.7151,
-      "val_accuracy": 0.7155
-    },
-    {
-      "C": 0.5,
-      "ngram_range": [
-        1,
-        2
-      ],
-      "val_macro_f1": 0.7449,
-      "val_accuracy": 0.7448
-    },
-    {
-      "C": 1.0,
-      "ngram_range": [
-        1,
-        2
-      ],
-      "val_macro_f1": 0.7506,
-      "val_accuracy": 0.7507
-    },
-    {
-      "C": 3.0,
-      "ngram_range": [
-        1,
-        2
-      ],
-      "val_macro_f1": 0.7494,
-      "val_accuracy": 0.7496
-    },
-    {
-      "C": 10.0,
-      "ngram_range": [
-        1,
-        2
-      ],
-      "val_macro_f1": 0.7472,
-      "val_accuracy": 0.7475
+      "val_macro_f1": 0.7108,
+      "val_accuracy": 0.7112
     }
   ],
-  "training_date": "2026-10-12T18:22:11.175721+00:00",
+  "training_date": "2026-10-12T20:00:04.551207+00:00",
   "version": "2.0.0"
 }
