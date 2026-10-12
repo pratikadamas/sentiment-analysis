@@ -9,8 +9,9 @@ Features:
 """
 
 import os
+import json
 from contextlib import asynccontextmanager
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import logging
 
 from fastapi import FastAPI, HTTPException, status, Request, Depends
@@ -22,7 +23,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from model import SentimentAnalyzer
 from database import init_db, User
-from auth import router as auth_router, get_current_user
+from auth import router as auth_router, get_current_user, get_token
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -127,10 +128,27 @@ class BatchSentimentResponse(BaseModel):
     results: List[SentimentResponse]
 
 
+METRICS_PATH = os.path.join(BASE_DIR, "model_metrics.json")
+
+
+def get_model_metrics() -> Dict[str, Any]:
+    if os.path.exists(METRICS_PATH):
+        try:
+            with open(METRICS_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Could not load model_metrics.json: {e}")
+    return {}
+
+
 class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     version: str
+    model_version: Optional[str] = None
+    training_date: Optional[str] = None
+    dataset_name: Optional[str] = None
+    test_macro_f1: Optional[float] = None
 
 
 # ==========================================
@@ -138,7 +156,7 @@ class HealthResponse(BaseModel):
 # ==========================================
 
 @app.get("/", response_class=HTMLResponse)
-async def serve_index(request: Request):
+async def serve_index(request: Request, current_user: User = Depends(get_current_user)):
     """
     Renders the web frontend interface (Phase 3).
     If templates/index.html is not yet created, returns a friendly status page.
@@ -186,12 +204,19 @@ async def serve_register(request: Request):
 async def healthcheck():
     """
     Health check endpoint for Render monitoring and uptime checks.
+    Returns service health and model metadata from model_metrics.json.
     """
     is_loaded = hasattr(app.state, "analyzer") and app.state.analyzer is not None
+    metrics = get_model_metrics()
+    model_version = metrics.get("version", "2.0.0")
     return HealthResponse(
         status="healthy",
         model_loaded=is_loaded,
-        version="1.0.0"
+        version=model_version,
+        model_version=model_version,
+        training_date=metrics.get("training_date"),
+        dataset_name=metrics.get("dataset_name"),
+        test_macro_f1=metrics.get("test_macro_f1")
     )
 
 
