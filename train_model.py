@@ -1,141 +1,247 @@
 """
 Model Training Script for 3-Class Sentiment Analysis (Positive, Neutral, Negative)
-Uses Scikit-Learn with TF-IDF Vectorizer and tuned Logistic Regression.
-Saves the trained model pipeline to 'sentiment_model.joblib'.
+Trained on Yelp Review Full dataset with Scikit-Learn.
+Pipeline: TfidfVectorizer + LogisticRegression, calibrated using CalibratedClassifierCV(method="sigmoid", cv=3).
+Hyperparameter tuning on validation set only. Final evaluation once on test set.
 """
 
 import os
+import sys
+import json
+from datetime import datetime, timezone
+import pandas as pd
 import joblib
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    classification_report,
+    confusion_matrix,
+    ConfusionMatrixDisplay
+)
 
-def build_and_train_model():
-    print("Preparing training dataset...")
-    # Comprehensive balanced dataset covering positive, neutral, and negative sentiments
-    training_data = [
-        # POSITIVE
-        ("I absolutely love this product, it is fantastic!", "positive"),
-        ("This is the best experience I have ever had.", "positive"),
-        ("Outstanding quality, fast delivery, and great support.", "positive"),
-        ("I am really happy with the results.", "positive"),
-        ("Super excited about this update, works like a charm!", "positive"),
-        ("Brilliant work! Highly recommended to everyone.", "positive"),
-        ("The staff was extremely helpful and courteous.", "positive"),
-        ("A wonderful purchase, worth every penny.", "positive"),
-        ("Smooth, fast, and remarkably intuitive interface.", "positive"),
-        ("Exceeded all my expectations in every way.", "positive"),
-        ("Kudos to the entire team for such an amazing feature.", "positive"),
-        ("I'm so impressed by how quickly this resolved my problem.", "positive"),
-        ("Exceptional service and friendly atmosphere.", "positive"),
-        ("Simply delightful! Would definitely buy again.", "positive"),
-        ("Top notch performance and very reliable.", "positive"),
-        ("Great value for money, absolutely thrilled.", "positive"),
-        ("I love everything about this app, 10/10.", "positive"),
-        ("Very satisfied with the speed and reliability.", "positive"),
-        ("Such a pleasant experience from start to finish.", "positive"),
-        ("Terrific customer service and swift delivery.", "positive"),
-        ("This made my day so much brighter and easier.", "positive"),
-        ("Incredible quality, feels so premium.", "positive"),
-        ("Everything was perfect, couldn't ask for better.", "positive"),
-        ("I really appreciate the dedication and care.", "positive"),
-        ("Flawless execution, very pleased with the outcome.", "positive"),
-        ("This product exceeded all my expectations! Highly recommended.", "positive"),
-        ("Great job! Extremely happy with this.", "positive"),
-        ("Excellent work, love the design and responsiveness.", "positive"),
 
-        # NEUTRAL
-        ("The package was delivered at 3 PM today.", "neutral"),
-        ("The store is open from 9 AM to 6 PM Monday to Friday.", "neutral"),
-        ("I received an email notification regarding the update.", "neutral"),
-        ("The meeting has been scheduled for tomorrow morning.", "neutral"),
-        ("The report contains forty-five pages of data.", "neutral"),
-        ("The temperature outside is twenty degrees Celsius.", "neutral"),
-        ("She drove to the supermarket to buy groceries.", "neutral"),
-        ("The book has twelve chapters and an index.", "neutral"),
-        ("The system rebooted at midnight as scheduled.", "neutral"),
-        ("The train departs from platform four in ten minutes.", "neutral"),
-        ("There is a new document available on the portal.", "neutral"),
-        ("We discussed the quarterly budget during the call.", "neutral"),
-        ("The order number is 849204.", "neutral"),
-        ("A software update was released yesterday.", "neutral"),
-        ("The conference will take place in Chicago next month.", "neutral"),
-        ("Payment was processed via standard bank transfer.", "neutral"),
-        ("The account settings can be modified in the profile tab.", "neutral"),
-        ("The flight duration is estimated at four hours.", "neutral"),
-        ("The server log shows five incoming requests per second.", "neutral"),
-        ("The file format is PDF and size is two megabytes.", "neutral"),
-        ("We reviewed the initial draft with the committee.", "neutral"),
-        ("The office is located on the seventh floor.", "neutral"),
-        ("The package weighs approximately 1.5 kilograms.", "neutral"),
-        ("The warranty is valid for twelve months from purchase.", "neutral"),
-        ("Normal operating hours apply on weekends.", "neutral"),
-        ("The report was submitted on Tuesday afternoon.", "neutral"),
-        ("The meeting starts at 10 AM in room 204.", "neutral"),
-        ("The current version is 1.0.4.", "neutral"),
+def load_dataset_splits(data_dir: str = "data"):
+    """
+    Loads train, val, and test splits from CSV files.
+    Fails with a clear message telling the user to run prepare_data.py if missing.
+    """
+    train_path = os.path.join(data_dir, "train.csv")
+    val_path = os.path.join(data_dir, "val.csv")
+    test_path = os.path.join(data_dir, "test.csv")
 
-        # NEGATIVE
-        ("This is by far the worst experience I have ever had.", "negative"),
-        ("Terrible customer service, rude and completely unhelpful.", "negative"),
-        ("The product broke within two hours of arrival.", "negative"),
-        ("Total waste of time and money, do not recommend.", "negative"),
-        ("Extremely disappointed with the poor build quality.", "negative"),
-        ("Horrible experience, never purchasing from here again.", "negative"),
-        ("The application constantly crashes and freezes.", "negative"),
-        ("Awful performance, slow, clunky, and buggy.", "negative"),
-        ("I asked for a refund because it failed to work at all.", "negative"),
-        ("Very frustrating and confusing to use.", "negative"),
-        ("Dreadful experience, absolutely zero support.", "negative"),
-        ("Defective item arrived damaged and unusable.", "negative"),
-        ("Such a letdown, completely misleading advertisement.", "negative"),
-        ("Poor communication and delayed response.", "negative"),
-        ("Disastrous launch, full of bugs and errors.", "negative"),
-        ("Extremely unsatisfied with this service.", "negative"),
-        ("The worst app ever, constantly fails to load.", "negative"),
-        ("I regret buying this, complete rip-off.", "negative"),
-        ("Unacceptable delay and terrible handling.", "negative"),
-        ("The item stopped working after one day.", "negative"),
-        ("Terrible UI, painful to navigate, and full of glitches.", "negative"),
-        ("Nobody replied to my ticket, worst support.", "negative"),
-        ("It ruined my entire project workflow.", "negative"),
-        ("Completely useless, does not match the description.", "negative"),
-        ("I am very unhappy and annoyed by this mistake.", "negative"),
-        ("The service was awful and completely unacceptable.", "negative"),
-        ("Awful service and unacceptable quality.", "negative"),
-        ("Hate this product, absolute garbage.", "negative")
-    ]
+    missing = [p for p in (train_path, val_path, test_path) if not os.path.exists(p)]
+    if missing:
+        msg = (
+            f"\n[ERROR] Missing required dataset split file(s): {missing}\n"
+            "Please run `python prepare_data.py` first to generate and prepare the Yelp dataset splits.\n"
+        )
+        print(msg, file=sys.stderr)
+        raise FileNotFoundError(msg)
 
-    texts, labels = zip(*training_data)
+    print(f"Loading dataset splits from '{data_dir}/'...")
+    train_df = pd.read_csv(train_path).dropna(subset=["text", "label"])
+    val_df = pd.read_csv(val_path).dropna(subset=["text", "label"])
+    test_df = pd.read_csv(test_path).dropna(subset=["text", "label"])
 
-    print(f"Training on {len(texts)} samples across 3 classes...")
+    print(f"  Train set:      {len(train_df):,} samples")
+    print(f"  Validation set: {len(val_df):,} samples")
+    print(f"  Test set:       {len(test_df):,} samples")
 
-    # Build Pipeline
-    pipeline = Pipeline([
+    return train_df, val_df, test_df
+
+
+def tune_hyperparameters(X_train, y_train, X_val, y_val):
+    """
+    Tune C in [0.5, 1, 3, 10] and ngram_range in [(1,1), (1,2)] using the VALIDATION set only.
+    Optimizes for validation macro-F1.
+    Prints the results table and returns the best hyperparameters.
+    """
+    C_values = [0.5, 1.0, 3.0, 10.0]
+    ngram_ranges = [(1, 1), (1, 2)]
+
+    results = []
+    print("\n" + "=" * 66)
+    print("HYPERPARAMETER TUNING ON VALIDATION SET (macro-F1)")
+    print("=" * 66)
+
+    for ngram in ngram_ranges:
+        print(f"\nVectorizing with ngram_range={ngram} (sublinear_tf=True)...", flush=True)
+        vec = TfidfVectorizer(ngram_range=ngram, sublinear_tf=True, lowercase=True)
+        X_train_vec = vec.fit_transform(X_train)
+        X_val_vec = vec.transform(X_val)
+
+        for C in C_values:
+            clf = LogisticRegression(C=C, max_iter=1000, random_state=42, solver="lbfgs")
+            clf.fit(X_train_vec, y_train)
+            val_preds = clf.predict(X_val_vec)
+            macro_f1 = f1_score(y_val, val_preds, average="macro")
+            acc = accuracy_score(y_val, val_preds)
+
+            results.append({
+                "C": C,
+                "ngram_range": ngram,
+                "val_macro_f1": macro_f1,
+                "val_accuracy": acc
+            })
+            print(f"  C={C:<4} | ngram_range={str(ngram):<6} | Val Macro-F1: {macro_f1:.4f} | Val Acc: {acc:.4f}", flush=True)
+
+    # Print results table
+    print("\n" + "-" * 66)
+    print(f"{'C':<8} | {'ngram_range':<14} | {'Val Macro-F1':<14} | {'Val Accuracy':<14}")
+    print("-" * 66)
+    for r in results:
+        print(f"{r['C']:<8} | {str(r['ngram_range']):<14} | {r['val_macro_f1']:<14.4f} | {r['val_accuracy']:<14.4f}")
+    print("-" * 66)
+
+    best = max(results, key=lambda x: x["val_macro_f1"])
+    print(f"\nBest Hyperparameters (selected on Validation Set):")
+    print(f"  C:            {best['C']}")
+    print(f"  ngram_range:  {best['ngram_range']}")
+    print(f"  Val Macro-F1: {best['val_macro_f1']:.4f}")
+    print(f"  Val Accuracy: {best['val_accuracy']:.4f}\n")
+
+    return best["C"], best["ngram_range"], results
+
+
+def build_and_train_model(data_dir: str = "data", output_dir: str = "."):
+    """
+    Main training workflow:
+    1. Reads train/val/test splits.
+    2. Tunes C and ngram_range on validation set using macro-F1.
+    3. Trains CalibratedClassifierCV(Pipeline, method="sigmoid", cv=3) on training set.
+    4. Evaluates once on test set (accuracy, macro-F1, per-class metrics).
+    5. Saves confusion matrix to reports/confusion_matrix.png.
+    6. Saves sentiment_model.joblib and model_metrics.json.
+    """
+    train_df, val_df, test_df = load_dataset_splits(data_dir)
+
+    X_train, y_train = train_df["text"], train_df["label"]
+    X_val, y_val = val_df["text"], val_df["label"]
+    X_test, y_test = test_df["text"], test_df["label"]
+
+    # 1. Tune hyperparameters on validation set only
+    best_C, best_ngram, tuning_results = tune_hyperparameters(X_train, y_train, X_val, y_val)
+
+    # 2. Build final calibrated pipeline
+    print("Building final pipeline with selected hyperparameters...")
+    base_pipeline = Pipeline([
         ("tfidf", TfidfVectorizer(
-            ngram_range=(1, 2),
+            ngram_range=best_ngram,
             sublinear_tf=True,
-            lowercase=True,
-            token_pattern=r"(?u)\b\w+\b|[!?:;]"
+            lowercase=True
         )),
         ("classifier", LogisticRegression(
-            C=3.0,
+            C=best_C,
             max_iter=1000,
-            solver="lbfgs"
+            solver="lbfgs",
+            random_state=42
         ))
     ])
 
-    pipeline.fit(texts, labels)
+    final_model = CalibratedClassifierCV(
+        estimator=base_pipeline,
+        method="sigmoid",
+        cv=3
+    )
 
-    # Evaluate on training data
-    preds = pipeline.predict(texts)
-    print("\nClassification Report:")
-    print(classification_report(labels, preds))
+    print(f"Training CalibratedClassifierCV(cv=3, method='sigmoid') on full training set ({len(X_train):,} samples)...", flush=True)
+    final_model.fit(X_train, y_train)
+    print("Training and calibration complete.")
 
-    model_path = os.path.join(os.path.dirname(__file__), "sentiment_model.joblib")
-    joblib.dump(pipeline, model_path)
-    print(f"Model saved successfully to: {model_path}")
-    return model_path
+    # 3. Evaluate ONCE on the TEST set (never on train, never used for tuning)
+    print("\n" + "=" * 66)
+    print("EVALUATION ON TEST SET (Evaluated ONCE, never used for tuning)")
+    print("=" * 66)
+    test_preds = final_model.predict(X_test)
+    test_acc = float(accuracy_score(y_test, test_preds))
+    test_macro_f1 = float(f1_score(y_test, test_preds, average="macro"))
+
+    report_dict = classification_report(y_test, test_preds, output_dict=True)
+    report_text = classification_report(y_test, test_preds)
+    print(report_text)
+    print(f"Test Accuracy: {test_acc:.4f}")
+    print(f"Test Macro-F1: {test_macro_f1:.4f}")
+
+    classes = sorted(list(final_model.classes_))
+    per_class_f1 = {cls: float(report_dict[cls]["f1-score"]) for cls in classes}
+    per_class_precision = {cls: float(report_dict[cls]["precision"]) for cls in classes}
+    per_class_recall = {cls: float(report_dict[cls]["recall"]) for cls in classes}
+
+    # 4. Save confusion matrix image
+    os.makedirs("reports", exist_ok=True)
+    cm = confusion_matrix(y_test, test_preds, labels=classes)
+    fig, ax = plt.subplots(figsize=(6, 5))
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=classes)
+    disp.plot(cmap="Blues", ax=ax, values_format="d")
+    ax.set_title("Test Confusion Matrix (Yelp 3-Class Sentiment)")
+    plt.tight_layout()
+    cm_path = os.path.join("reports", "confusion_matrix.png")
+    plt.savefig(cm_path, dpi=300)
+    plt.close(fig)
+    print(f"\nSaved confusion matrix plot to: {cm_path}")
+
+    # 5. Save model artifact
+    model_path = os.path.join(output_dir, "sentiment_model.joblib")
+    joblib.dump(final_model, model_path)
+    print(f"Saved calibrated model to: {model_path}")
+
+    # 6. Save model metrics JSON
+    metrics_path = os.path.join(output_dir, "model_metrics.json")
+    metrics_data = {
+        "dataset_name": "yelp_review_full",
+        "train_size": len(X_train),
+        "val_size": len(X_val),
+        "test_size": len(X_test),
+        "dataset_sizes": {
+            "train": len(X_train),
+            "val": len(X_val),
+            "test": len(X_test)
+        },
+        "label_mapping": {
+            "0, 1": "negative",
+            "2": "neutral",
+            "3, 4": "positive"
+        },
+        "chosen_hyperparameters": {
+            "C": best_C,
+            "ngram_range": list(best_ngram),
+            "calibration_method": "sigmoid",
+            "cv": 3,
+            "sublinear_tf": True
+        },
+        "test_macro_f1": round(test_macro_f1, 4),
+        "accuracy": round(test_acc, 4),
+        "per_class_f1": {k: round(v, 4) for k, v in per_class_f1.items()},
+        "per_class_precision": {k: round(v, 4) for k, v in per_class_precision.items()},
+        "per_class_recall": {k: round(v, 4) for k, v in per_class_recall.items()},
+        "tuning_results": [
+            {
+                "C": r["C"],
+                "ngram_range": list(r["ngram_range"]),
+                "val_macro_f1": round(r["val_macro_f1"], 4),
+                "val_accuracy": round(r["val_accuracy"], 4)
+            }
+            for r in tuning_results
+        ],
+        "training_date": datetime.now(timezone.utc).isoformat(),
+        "version": "2.0.0"
+    }
+
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        json.dump(metrics_data, f, indent=2)
+    print(f"Saved model metrics to: {metrics_path}")
+
+    return model_path, metrics_path
+
 
 if __name__ == "__main__":
     build_and_train_model()
