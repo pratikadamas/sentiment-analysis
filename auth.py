@@ -8,7 +8,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
+from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy.orm import Session
@@ -21,6 +22,11 @@ from database import User, get_db
 SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "sentiment-pulse-super-secret-key-2026-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # Default 24 hours
+
+# Cookie Configurations
+COOKIE_NAME = "access_token"
+COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "true").lower() in ("true", "1")
+COOKIE_SAMESITE = "lax"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security_bearer = HTTPBearer(auto_error=False)
@@ -89,26 +95,41 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-async def get_current_user(
+def get_token(
     request: Request,
     auth_credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_bearer),
+) -> Optional[str]:
+    """
+    FastAPI dependency that extracts the JWT token from the Authorization Bearer header
+    or the access_token cookie.
+    """
+    if auth_credentials and auth_credentials.credentials:
+        return auth_credentials.credentials
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header.split(" ", 1)[1].strip()
+    return request.cookies.get(COOKIE_NAME)
+
+
+async def get_current_user(
+    request: Request,
+    token: Optional[str] = Depends(get_token),
     db: Session = Depends(get_db)
 ) -> User:
     """
-    FastAPI dependency that extracts and validates the Bearer JWT token from the Authorization header,
+    FastAPI dependency that validates the JWT token obtained from cookie or Authorization header,
     returning the authenticated User model from the database.
+    Unauthenticated GET "/" returns a 302 redirect to /login.
+    API routes return 401 Unauthorized JSON.
     """
-    token: Optional[str] = None
-
-    if auth_credentials and auth_credentials.credentials:
-        token = auth_credentials.credentials
-    else:
-        # Fallback to direct Authorization header check if HTTPBearer did not capture it
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ", 1)[1].strip()
+    is_root = request.url.path in ("/", "")
 
     if not token:
+        if is_root:
+            raise HTTPException(
+                status_code=status.HTTP_302_FOUND,
+                headers={"Location": "/login"}
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication credentials were not provided or invalid Bearer token.",
@@ -119,12 +140,22 @@ async def get_current_user(
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: Optional[str] = payload.get("sub")
         if username is None:
+            if is_root:
+                raise HTTPException(
+                    status_code=status.HTTP_302_FOUND,
+                    headers={"Location": "/login"}
+                )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication token payload.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
     except JWTError:
+        if is_root:
+            raise HTTPException(
+                status_code=status.HTTP_302_FOUND,
+                headers={"Location": "/login"}
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials: token is invalid or expired.",
@@ -133,6 +164,11 @@ async def get_current_user(
 
     user = db.query(User).filter(User.username == username).first()
     if user is None:
+        if is_root:
+            raise HTTPException(
+                status_code=status.HTTP_302_FOUND,
+                headers={"Location": "/login"}
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User associated with this token was not found.",
@@ -182,9 +218,10 @@ def register_user(payload: UserRegister, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 @router.post("/api/login", response_model=TokenResponse)
-def login_user(payload: UserLogin, db: Session = Depends(get_db)):
+def login_user(payload: UserLogin, response: Response, db: Session = Depends(get_db)):
     """
-    Authenticates a user with username/email and password, returning a JWT Bearer token upon success.
+    Authenticates a user with username/email and password, returning a JWT Bearer token upon success
+    and setting an httpOnly, Secure, SameSite=Lax access_token cookie.
     """
     identifier = payload.username.strip()
     
@@ -204,12 +241,54 @@ def login_user(payload: UserLogin, db: Session = Depends(get_db)):
         data={"sub": user.username, "email": user.email, "user_id": user.id}
     )
 
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=access_token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/"
+    )
+
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
         username=user.username,
         email=user.email
     )
+
+
+@router.post("/logout")
+@router.post("/api/logout")
+def logout_user(response: Response):
+    """
+    Clears the access_token cookie to log out the user.
+    """
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        path="/"
+    )
+    return {"message": "Successfully logged out."}
+
+
+@router.get("/logout")
+def logout_user_get():
+    """
+    Clears the access_token cookie and redirects to /login.
+    """
+    redirect_res = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    redirect_res.delete_cookie(
+        key=COOKIE_NAME,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        path="/"
+    )
+    return redirect_res
 
 
 @router.get("/me", response_model=UserResponse)
