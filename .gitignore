@@ -20,3 +20,6 @@ Thumbs.db
 # SQLite Databases
 *.db
 *.sqlite3
+
+# Training data
+data/*.csv
