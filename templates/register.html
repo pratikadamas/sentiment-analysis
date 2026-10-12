@@ -351,7 +351,6 @@
 
           if (loginRes.ok) {
             const loginData = await loginRes.json();
-            localStorage.setItem('token', loginData.access_token);
             localStorage.setItem('username', loginData.username);
             localStorage.setItem('email', loginData.email);
 

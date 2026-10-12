@@ -99,6 +99,13 @@ class TestFastAPIBackend(unittest.TestCase):
         scores = data["scores"]
         self.assertAlmostEqual(sum(scores.values()), 1.0, places=3)
 
+    def test_predict_gibberish(self):
+        payload = {"text": "asdfghjkl zxcvbnm"}
+        response = self.client.post("/predict", json=payload, headers=self.auth_headers)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["sentiment"], "unknown")
+
     def test_batch_prediction(self):
         payload = {
             "texts": [

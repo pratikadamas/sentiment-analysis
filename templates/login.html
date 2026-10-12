@@ -270,8 +270,7 @@
           return;
         }
 
-        // Save token & user info in localStorage
-        localStorage.setItem('token', data.access_token);
+        // Save user info in localStorage (JWT token is set in httpOnly cookie)
         localStorage.setItem('username', data.username);
         if (data.email) {
           localStorage.setItem('email', data.email);

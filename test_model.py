@@ -57,5 +57,10 @@ class TestSentimentModel(unittest.TestCase):
             scores_sum = sum(res["scores"].values())
             self.assertAlmostEqual(scores_sum, 1.0, places=3)
 
+    def test_predict_gibberish(self):
+        text = "asdfghjkl zxcvbnm"
+        res = self.analyzer.predict(text)
+        self.assertEqual(res["sentiment"], "unknown")
+
 if __name__ == "__main__":
     unittest.main()

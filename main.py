@@ -101,7 +101,7 @@ class SentimentScores(BaseModel):
 
 class SentimentResponse(BaseModel):
     text: str
-    sentiment: str = Field(..., description="Predicted sentiment: 'positive', 'neutral', or 'negative'")
+    sentiment: str = Field(..., description="Predicted sentiment: 'positive', 'neutral', 'negative', or 'unknown'")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score between 0 and 1")
     scores: Dict[str, float] = Field(..., description="Probability breakdown across all 3 classes")
 
