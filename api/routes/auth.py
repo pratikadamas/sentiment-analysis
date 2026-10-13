@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from jose import JWTError, jwt
 
 from core.config import settings
@@ -82,7 +83,15 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user = db.query(User).filter(User.username == username).first()
+    try:
+        user = db.query(User).filter(User.username == username).first()
+    except Exception as exc:
+        logger.error(f"Database error loading current user '{username}': {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database service temporarily unavailable. Please try again later."
+        )
+
     if user is None:
         if is_root:
             raise HTTPException(
@@ -119,31 +128,59 @@ def register_user(request: Request, payload: UserRegister, db: Session = Depends
             detail="Too many registration attempts. Please try again later."
         )
 
-    # Check if username exists
-    existing_user = db.query(User).filter(User.username == payload.username).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Username '{payload.username}' is already registered."
-        )
+    clean_username = payload.username.strip()
+    clean_email = str(payload.email).strip().lower()
 
-    # Check if email exists
-    existing_email = db.query(User).filter(User.email == payload.email).first()
-    if existing_email:
+    # Check if username or email exists
+    try:
+        existing_user = db.query(User).filter(User.username == clean_username).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Username '{clean_username}' is already registered."
+            )
+
+        existing_email = db.query(User).filter(User.email == clean_email).first()
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Email '{clean_email}' is already registered."
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"Database query error during registration check: {exc}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Email '{payload.email}' is already registered."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database service temporarily unavailable. Please try again later."
         )
 
     hashed_pw = get_password_hash(payload.password)
     new_user = User(
-        username=payload.username,
-        email=str(payload.email).lower(),
-        hashed_password=hashed_pw
+        username=clean_username,
+        email=clean_email,
+        hashed_password=hashed_pw,
+        is_active=True
     )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+    except IntegrityError as ie:
+        db.rollback()
+        logger.warning(f"Integrity conflict during user registration: {ie}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A user with this username or email already exists."
+        )
+    except Exception as exc:
+        db.rollback()
+        logger.error(f"Database error committing new user '{clean_username}': {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database service temporarily unavailable. Please try again later."
+        )
+
     logger.info(f"User '{new_user.username}' successfully registered.")
     return new_user
 
@@ -166,9 +203,16 @@ def login_user(request: Request, payload: UserLogin, response: Response, db: Ses
         )
 
     identifier = payload.username.strip()
-    user = db.query(User).filter(
-        (User.username == identifier) | (User.email == identifier.lower())
-    ).first()
+    try:
+        user = db.query(User).filter(
+            (User.username == identifier) | (User.email == identifier.lower())
+        ).first()
+    except Exception as exc:
+        logger.error(f"Database error during login authentication: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database service temporarily unavailable. Please try again later."
+        )
 
     if not user or not verify_password(payload.password, user.hashed_password):
         logger.warning(f"Failed authentication attempt for identifier: {identifier}")

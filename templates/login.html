@@ -244,12 +244,41 @@
       alertBanner.classList.add('hidden');
     }
 
+    function parseLoginErrorMessage(response, data) {
+      if (data && Array.isArray(data.detail)) {
+        return data.detail.map(e => e.msg).join('. ');
+      }
+      if (data && typeof data.detail === 'string' && data.detail.trim()) {
+        return data.detail;
+      }
+      if (data && typeof data.message === 'string' && data.message.trim()) {
+        return data.message;
+      }
+      switch (response.status) {
+        case 401:
+          return 'Incorrect username or password. Please verify your credentials.';
+        case 422:
+          return 'Please provide both your username and password.';
+        case 429:
+          return 'Too many login attempts. Please wait a moment before trying again.';
+        case 500:
+        case 502:
+        case 503:
+        case 504:
+          return 'Authentication service is temporarily unavailable. Please try again shortly.';
+        default:
+          return `Sign in failed (HTTP ${response.status}). Please check your credentials.`;
+      }
+    }
+
     function setLoading(isLoading) {
       submitBtn.disabled = isLoading;
       if (isLoading) {
+        submitBtn.setAttribute('aria-busy', 'true');
         spinner.classList.remove('hidden');
         btnText.textContent = 'Authenticating...';
       } else {
+        submitBtn.removeAttribute('aria-busy');
         spinner.classList.add('hidden');
         btnText.textContent = 'Sign In';
       }
@@ -259,6 +288,8 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       hideAlert();
+
+      if (submitBtn.disabled) return;
 
       const username = usernameInput.value.trim();
       const password = passwordInput.value;
@@ -279,10 +310,15 @@
           body: JSON.stringify({ username, password })
         });
 
-        const data = await response.json().catch(() => ({}));
+        let data = {};
+        try {
+          data = await response.json();
+        } catch (_) {
+          data = {};
+        }
 
         if (!response.ok) {
-          const errorMsg = data.detail || 'Login failed. Please verify your credentials.';
+          const errorMsg = parseLoginErrorMessage(response, data);
           showAlert(errorMsg, 'error');
           setLoading(false);
           return;
@@ -297,7 +333,7 @@
         }, 400);
 
       } catch (err) {
-        showAlert('Network error: unable to reach the server. Please check your connection.');
+        showAlert('Network error: Unable to reach the server. Please check your internet connection.');
         setLoading(false);
       }
     });

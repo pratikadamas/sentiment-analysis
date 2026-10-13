@@ -14,6 +14,7 @@ Features:
 """
 
 import os
+import uuid
 from contextlib import asynccontextmanager
 from typing import Dict, List, Optional, Any
 
@@ -21,7 +22,7 @@ from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 
 from core.config import settings
 from core.logging import setup_logging, get_logger
@@ -85,6 +86,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Exception Handler ensuring structured JSON error responses rather than plain text
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    logger.error(f"Global unhandled error [{req_id}] processing {request.method} {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "detail": "An internal server error occurred. Please try again later.",
+            "request_id": req_id
+        }
+    )
+
 
 # 3. Mount Templates & Static Files
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -32,7 +32,7 @@ def upgrade() -> None:
             sa.Column('username', sa.String(length=50), nullable=False),
             sa.Column('email', sa.String(length=120), nullable=False),
             sa.Column('hashed_password', sa.String(length=255), nullable=False),
-            sa.Column('is_active', sa.Boolean(), server_default=sa.text('1'), nullable=False),
+            sa.Column('is_active', sa.Boolean(), server_default=sa.true(), nullable=False),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
             sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
             sa.PrimaryKeyConstraint('id')
@@ -45,7 +45,7 @@ def upgrade() -> None:
         existing_cols = [c['name'] for c in inspector.get_columns('users')]
         with op.batch_alter_table('users', schema=None) as batch_op:
             if 'is_active' not in existing_cols:
-                batch_op.add_column(sa.Column('is_active', sa.Boolean(), server_default=sa.text('1'), nullable=False))
+                batch_op.add_column(sa.Column('is_active', sa.Boolean(), server_default=sa.true(), nullable=False))
             if 'created_at' not in existing_cols:
                 batch_op.add_column(sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False))
             if 'updated_at' not in existing_cols:

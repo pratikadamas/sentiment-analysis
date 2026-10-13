@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from db.session import get_db
+from db.models import User
 from services.sentiment_service import sentiment_service
 from schemas.health import HealthResponse, ReadinessResponse
 from core.config import settings
@@ -68,12 +69,13 @@ def readiness_check(db: Session = Depends(get_db)):
     Readiness probe verifying database connectivity and model initialization.
     Returns 503 if any core subsystem is unavailable.
     """
-    # 1. Check DB connectivity
+    # 1. Check DB connectivity and core schema tables
     db_status = "ok"
     try:
         db.execute(text("SELECT 1"))
+        db.query(User).first()
     except Exception as e:
-        logger.error(f"Readiness probe DB connection failed: {e}")
+        logger.error(f"Readiness probe DB connection or schema query failed: {e}")
         db_status = f"unhealthy: {str(e)}"
 
     # 2. Check Model availability

@@ -282,12 +282,55 @@
       alertBanner.classList.add('hidden');
     }
 
+    function parseErrorMessage(response, data) {
+      // 1. Pydantic validation errors (array of objects)
+      if (data && Array.isArray(data.detail)) {
+        const messages = data.detail.map(err => {
+          const field = err.loc && err.loc.length > 0 ? err.loc[err.loc.length - 1] : 'Field';
+          const fieldLabel = field.charAt(0).toUpperCase() + field.slice(1);
+          return `${fieldLabel}: ${err.msg || 'Invalid value'}`;
+        });
+        return messages.join('. ');
+      }
+
+      // 2. Standard string detail from backend
+      if (data && typeof data.detail === 'string' && data.detail.trim()) {
+        return data.detail;
+      }
+
+      // 3. Alternative message property
+      if (data && typeof data.message === 'string' && data.message.trim()) {
+        return data.message;
+      }
+
+      // 4. Status-code based diagnostics
+      switch (response.status) {
+        case 400:
+          return 'Invalid registration data. Please verify your details.';
+        case 409:
+          return 'An account with this username or email already exists.';
+        case 422:
+          return 'Validation failed: Please ensure all fields meet the required formats.';
+        case 429:
+          return 'Too many registration attempts. Please wait a moment before trying again.';
+        case 500:
+        case 502:
+        case 503:
+        case 504:
+          return 'The server encountered a temporary issue. Please try again in a few moments.';
+        default:
+          return `Registration failed (HTTP ${response.status}). Please check your details and try again.`;
+      }
+    }
+
     function setLoading(isLoading) {
       submitBtn.disabled = isLoading;
       if (isLoading) {
+        submitBtn.setAttribute('aria-busy', 'true');
         spinner.classList.remove('hidden');
         btnText.textContent = 'Creating Account...';
       } else {
+        submitBtn.removeAttribute('aria-busy');
         spinner.classList.add('hidden');
         btnText.textContent = 'Create Account';
       }
@@ -297,6 +340,9 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       hideAlert();
+
+      // Prevent concurrent duplicate submission
+      if (submitBtn.disabled) return;
 
       const username = usernameInput.value.trim();
       const email = emailInput.value.trim();
@@ -348,10 +394,15 @@
           body: JSON.stringify({ username, email, password })
         });
 
-        const data = await response.json().catch(() => ({}));
+        let data = {};
+        try {
+          data = await response.json();
+        } catch (_) {
+          data = {};
+        }
 
         if (!response.ok) {
-          const errorMsg = data.detail || 'Registration failed. Please check your details.';
+          const errorMsg = parseErrorMessage(response, data);
           showAlert(errorMsg, 'error');
           setLoading(false);
           return;
@@ -383,7 +434,7 @@
         }, 700);
 
       } catch (err) {
-        showAlert('Network error: unable to contact the server. Please try again.');
+        showAlert('Network error: Unable to connect to the server. Please check your internet connection.');
         setLoading(false);
       }
     });
