@@ -106,7 +106,7 @@ def run_stress_tests(analyzer: SentimentAnalyzer):
 
 
 def main():
-    print("Initializing SentimentAnalyzer (loading sentiment_model.joblib)...")
+    print("Initializing SentimentAnalyzer (loading sentiment_model.onnx)...")
     analyzer = SentimentAnalyzer()
     print("Model loaded successfully.\n")
 
