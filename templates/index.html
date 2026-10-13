@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SentimentPulse AI — Real-time 3-Class Sentiment Analysis</title>
-  <meta name="description" content="Instant NLP sentiment classification powered by FastAPI and calibrated machine learning. Classifies text into positive, neutral, or negative sentiments.">
-  
+  <title>Sentiment Pulse — Customer Feedback Intelligence Platform</title>
+  <meta name="description" content="AI-powered customer feedback intelligence platform. Monitor sentiment, track trends over time, and resolve negative customer feedback.">
+
   <!-- Theme Initialization (Prevents FOUC) -->
   <script>
     if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -19,10 +19,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
-  
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/static/theme.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -40,346 +39,868 @@
               600: '#4f46e5',
               700: '#4338ca',
             }
-          },
-          animation: {
-            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            'float': 'float 4s ease-in-out infinite',
-          },
-          keyframes: {
-            float: {
-              '0%, 100%': { transform: 'translateY(0px)' },
-              '50%': { transform: 'translateY(-6px)' },
-            }
           }
         }
       }
     }
   </script>
 
-  <style>
-    /* Custom glassmorphism & glow effects */
-    .glass-card {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(226, 232, 240, 0.9);
-    }
-    .dark .glass-card {
-      background: rgba(17, 24, 39, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .glow-positive {
-      box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35);
-    }
-    .glow-neutral {
-      box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.35);
-    }
-    .glow-negative {
-      box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.35);
-    }
-    .glow-unknown {
-      box-shadow: 0 0 25px -5px rgba(100, 116, 139, 0.35);
-    }
-    .glow-brand {
-      box-shadow: 0 0 35px -5px rgba(99, 102, 241, 0.35);
-    }
-  </style>
+  <!-- Chart.js CDN for Zero-Build Accessible Data Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
-  <!-- Server-enforced authentication guard on GET / -->
+  <!-- Custom Stylesheet & Theme Controller -->
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/theme.js"></script>
 </head>
-<body class="bg-slate-50 dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white transition-colors duration-200">
+<body class="bg-slate-50 dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 min-h-screen flex flex-col lg:flex-row font-sans transition-colors duration-150">
 
-  <!-- Background Ambient Glow -->
-  <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-    <div class="absolute -top-40 -left-40 w-96 h-96 bg-indigo-500/10 dark:bg-indigo-600/20 rounded-full blur-3xl"></div>
-    <div class="absolute top-1/3 -right-40 w-96 h-96 bg-purple-500/10 dark:bg-purple-600/15 rounded-full blur-3xl"></div>
-    <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-600/10 rounded-full blur-3xl"></div>
-  </div>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2.5 pointer-events-none"></div>
 
-  <!-- Header / Navigation -->
-  <header class="relative z-10 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/75 dark:bg-slate-900/60 backdrop-blur-md transition-colors">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-purple-400 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-        <div>
-          <span class="text-xl font-bold font-display tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">SentimentPulse</span>
-          <span class="text-xs ml-1.5 px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-300 border border-brand-500/20 dark:border-brand-500/30 font-medium">AI v1.0</span>
-        </div>
+  <!-- Mobile Top Header Bar -->
+  <header class="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-[#111827] border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30">
+    <div class="flex items-center space-x-2.5">
+      <button id="mobile-drawer-open" aria-label="Open Navigation Menu" class="p-2 -ml-2 rounded-lg text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">⚡</div>
+        <span class="font-display font-bold text-base tracking-tight text-slate-900 dark:text-white">SentimentPulse</span>
       </div>
-
-      <!-- Header Status, Docs Link & User Controls -->
-      <div class="flex items-center space-x-3 text-sm">
-        <div id="system-status-badge" class="hidden sm:flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
-          <span class="text-xs font-medium">Model Ready</span>
-        </div>
-        <a href="/docs" target="_blank" class="hidden md:inline-flex items-center space-x-1 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors text-xs border border-slate-200 dark:border-slate-700/80 rounded-lg px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/50">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-          <span>Docs</span>
-        </a>
-
-        <!-- Theme Toggle Button -->
-        <button 
-          type="button" 
-          id="theme-toggle"
-          class="theme-toggle-btn p-2 rounded-xl text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/50 cursor-pointer flex items-center justify-center"
-          aria-label="Toggle light/dark mode"
-          title="Toggle light/dark mode"
-        >
-          <!-- Sun Icon (shown in dark mode to switch to light) -->
-          <svg class="w-4 h-4 theme-icon-sun hidden text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-          <!-- Moon Icon (shown in light mode to switch to dark) -->
-          <svg class="w-4 h-4 theme-icon-moon text-indigo-600 dark:text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-          </svg>
-        </button>
-
-        <!-- User Profile Badge & Logout Button -->
-        <div class="flex items-center space-x-2 pl-2 sm:pl-3 border-l border-slate-200 dark:border-slate-800">
-          <div class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 text-xs">
-            <div class="w-5 h-5 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-[10px] text-white font-bold">
-              <span id="user-avatar-initial">U</span>
-            </div>
-            <span id="user-display-name" class="font-medium text-slate-700 dark:text-slate-200 max-w-[100px] truncate">User</span>
-          </div>
-          <button 
-            id="logout-btn" 
-            title="Sign out of SentimentPulse"
-            class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 border border-rose-200 dark:border-rose-500/20 transition-all duration-150 cursor-pointer"
-          >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span>Logout</span>
-          </button>
-        </div>
-      </div>
+    </div>
+    <div class="flex items-center space-x-2">
+      <button type="button" class="theme-toggle-btn p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white" aria-label="Toggle Theme">
+        <svg class="w-4 h-4 theme-icon-sun hidden text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <svg class="w-4 h-4 theme-icon-moon text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
     </div>
   </header>
 
-  <!-- Main Content Container -->
-  <main class="relative z-10 flex-grow max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12">
-    
-    <!-- Hero Title -->
-    <div class="text-center max-w-3xl mx-auto mb-10">
-      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-semibold mb-4 tracking-wide uppercase">
-        <span>⚡ 3-Class Sentiment Engine</span>
+  <!-- Mobile Off-Canvas Drawer Backdrop -->
+  <div id="mobile-drawer-backdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden lg:hidden"></div>
+
+  <!-- Mobile Off-Canvas Navigation Drawer -->
+  <div id="mobile-drawer" class="fixed inset-y-0 left-0 w-72 bg-white dark:bg-[#111827] z-50 transform -translate-x-full transition-transform duration-300 ease-in-out lg:hidden flex flex-col border-r border-slate-200 dark:border-slate-800 shadow-2xl">
+    <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">⚡</div>
+        <span class="font-display font-bold text-base">SentimentPulse</span>
       </div>
-      <h1 class="text-3xl sm:text-5xl font-extrabold font-display tracking-tight text-slate-900 dark:text-white mb-4">
-        Discover the <span class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-indigo-400 dark:via-purple-300 dark:to-pink-400 bg-clip-text text-transparent">True Emotion</span> Behind Any Text
-      </h1>
-      <p class="text-slate-600 dark:text-slate-400 text-base sm:text-lg">
-        Classify customer reviews, tweets, feedback, and statements into 
-        <span class="text-emerald-600 dark:text-emerald-400 font-medium">Positive</span>, 
-        <span class="text-blue-600 dark:text-blue-400 font-medium">Neutral</span>, or 
-        <span class="text-rose-600 dark:text-rose-400 font-medium">Negative</span> sentiments with sub-5ms latency.
-      </p>
+      <button id="mobile-drawer-close" aria-label="Close Navigation" class="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
     </div>
 
-    <!-- Main Layout Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <!-- Mobile Navigation Links -->
+    <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+      <a href="#overview" data-view="overview" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-base">📊</span>
+        <span>Overview</span>
+      </a>
+      <a href="#analyze" data-view="analyze" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-base">⚡</span>
+        <span>Analyze Feedback</span>
+      </a>
+      <a href="#explorer" data-view="explorer" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-base">🗂️</span>
+        <span>Feedback Explorer</span>
+      </a>
+      <a href="#analytics" data-view="analytics" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-base">📈</span>
+        <span>Analytics & Trends</span>
+      </a>
+      <a href="#import-export" data-view="import-export" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-base">📥</span>
+        <span>Import / Export</span>
+      </a>
+    </nav>
+
+    <!-- Mobile Drawer Footer -->
+    <div class="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+      <a href="/docs" target="_blank" class="flex items-center space-x-2 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 px-3 py-2 rounded-lg">
+        <span>📖</span>
+        <span>Interactive API Docs</span>
+      </a>
+      <button class="logout-trigger w-full flex items-center space-x-2 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-3 py-2 rounded-lg font-medium">
+        <span>🚪</span>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Desktop Permanent Left Navigation Sidebar -->
+  <aside class="hidden lg:flex w-64 flex-col border-r border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#111827] sticky top-0 h-screen z-20 select-none">
+    
+    <!-- Brand Header -->
+    <div class="p-5 border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-purple-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-bold text-sm">
+          ⚡
+        </div>
+        <div>
+          <span class="font-display font-bold text-base tracking-tight text-slate-900 dark:text-white block">SentimentPulse</span>
+          <span class="text-[10px] text-slate-400 font-medium">Intelligence Platform v2.0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Section -->
+    <div class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <div class="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Main Platform</div>
       
-      <!-- Input Panel (Left Column: 7 cols) -->
-      <div class="lg:col-span-7 space-y-6">
-        <div class="glass-card rounded-2xl p-6 sm:p-7 shadow-xl dark:shadow-2xl relative border border-slate-200/80 dark:border-slate-800/80">
+      <a href="#overview" data-view="overview" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-sm">📊</span>
+        <span>Overview</span>
+      </a>
+
+      <a href="#analyze" data-view="analyze" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-sm">⚡</span>
+        <span>Analyze Feedback</span>
+      </a>
+
+      <a href="#explorer" data-view="explorer" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-sm">🗂️</span>
+        <span>Feedback Explorer</span>
+      </a>
+
+      <a href="#analytics" data-view="analytics" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-sm">📈</span>
+        <span>Analytics & Trends</span>
+      </a>
+
+      <a href="#import-export" data-view="import-export" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-sm">📥</span>
+        <span>Import / Export</span>
+      </a>
+
+      <div class="pt-4 px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Developer & API</div>
+      
+      <a href="/docs" target="_blank" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors">
+        <span class="flex items-center space-x-3">
+          <span class="text-sm">📖</span>
+          <span>OpenAPI Docs</span>
+        </span>
+        <span class="text-[10px] text-slate-400 font-mono">/docs</span>
+      </a>
+      
+      <a href="/health" target="_blank" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors">
+        <span class="flex items-center space-x-3">
+          <span class="text-sm">🟢</span>
+          <span>System Health</span>
+        </span>
+        <span class="text-[10px] text-emerald-500 font-mono">Live</span>
+      </a>
+    </div>
+
+    <!-- Desktop Sidebar Footer -->
+    <div class="p-3 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2">
+      
+      <!-- Theme Switcher Button -->
+      <button type="button" class="theme-toggle-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Toggle Light/Dark Theme">
+        <span class="flex items-center space-x-2.5">
+          <svg class="w-4 h-4 theme-icon-sun hidden text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="w-4 h-4 theme-icon-moon text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          <span>Appearance</span>
+        </span>
+        <span class="text-[10px] uppercase font-mono tracking-wider opacity-60">Theme</span>
+      </button>
+
+      <!-- User Profile Badge & Logout -->
+      <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-xs">
+        <div class="flex items-center space-x-2.5 min-w-0">
+          <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white font-bold text-[11px] flex-shrink-0">
+            <span id="user-avatar-initial">U</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <span id="user-display-name" class="font-semibold text-slate-800 dark:text-slate-100 truncate block text-[11px]">User</span>
+            <span id="user-email" class="text-[10px] text-slate-400 truncate block">user@example.com</span>
+          </div>
+        </div>
+        <button class="logout-trigger text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40" title="Sign Out">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- Main Viewport Content Container -->
+  <main class="flex-1 min-w-0 px-4 sm:px-8 py-6 max-w-7xl mx-auto w-full">
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 1: OVERVIEW DASHBOARD                                            -->
+    <!-- ===================================================================== -->
+    <div id="view-overview" class="space-y-6">
+      
+      <!-- Top Overview Welcome & Actions Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div>
+          <h1 class="text-2xl font-bold font-display text-slate-900 dark:text-white">Customer Feedback Overview</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Real-time satisfaction metrics, sentiment distributions, and customer feedback trends.</p>
+        </div>
+        <div class="flex items-center space-x-2.5">
+          <a href="#analyze" class="nav-link px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-sm flex items-center space-x-1.5" data-view="analyze">
+            <span>⚡</span>
+            <span>Analyze New Text</span>
+          </a>
+          <a href="#import-export" class="nav-link px-3.5 py-2 rounded-xl saas-card text-slate-700 dark:text-slate-200 font-medium text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center space-x-1.5" data-view="import-export">
+            <span>📥</span>
+            <span>Import CSV</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Empty State Onboarding Banner (Shown if total == 0) -->
+      <div id="overview-empty-state" class="hidden p-8 rounded-2xl saas-card text-center border-dashed border-2 border-slate-300 dark:border-slate-700">
+        <div class="text-4xl mb-3">💬</div>
+        <h3 class="text-base font-semibold text-slate-800 dark:text-slate-200 mb-1">No customer feedback recorded yet</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-5 leading-relaxed">
+          Start ingesting customer reviews to unlock sentiment insights, volume trends over time, and automated churn warnings.
+        </p>
+        <div class="flex items-center justify-center space-x-3">
+          <a href="#analyze" class="nav-link px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-500" data-view="analyze">Analyze Single Feedback</a>
+          <a href="#import-export" class="nav-link px-4 py-2 rounded-xl saas-card text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800" data-view="import-export">Bulk Import CSV</a>
+        </div>
+      </div>
+
+      <!-- Top KPI Metric Cards Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+        
+        <!-- Total Feedback -->
+        <div class="saas-card p-4 space-y-1">
+          <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Feedback</div>
+          <div id="kpi-total-val" class="overview-kpi-val text-2xl font-bold font-display text-slate-900 dark:text-white">0</div>
+          <div class="text-[10px] text-slate-400">Stored in database</div>
+        </div>
+
+        <!-- Positive -->
+        <div class="saas-card p-4 space-y-1">
+          <div class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Positive</div>
+          <div class="flex items-baseline space-x-2">
+            <span id="kpi-pos-val" class="overview-kpi-val text-2xl font-bold font-display text-slate-900 dark:text-white">0</span>
+            <span id="kpi-pos-pct" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 font-mono">0.0%</span>
+          </div>
+          <div class="text-[10px] text-slate-400">Satisfied reviews</div>
+        </div>
+
+        <!-- Neutral -->
+        <div class="saas-card p-4 space-y-1">
+          <div class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Neutral</div>
+          <div class="flex items-baseline space-x-2">
+            <span id="kpi-neu-val" class="overview-kpi-val text-2xl font-bold font-display text-slate-900 dark:text-white">0</span>
+            <span id="kpi-neu-pct" class="text-xs font-semibold text-blue-600 dark:text-blue-400 font-mono">0.0%</span>
+          </div>
+          <div class="text-[10px] text-slate-400">Objective statements</div>
+        </div>
+
+        <!-- Negative -->
+        <div class="saas-card p-4 space-y-1">
+          <div class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Negative</div>
+          <div class="flex items-baseline space-x-2">
+            <span id="kpi-neg-val" class="overview-kpi-val text-2xl font-bold font-display text-slate-900 dark:text-white">0</span>
+            <span id="kpi-neg-pct" class="text-xs font-semibold text-rose-600 dark:text-rose-400 font-mono">0.0%</span>
+          </div>
+          <div class="text-[10px] text-slate-400">Urgent attention</div>
+        </div>
+
+        <!-- Average Confidence -->
+        <div class="saas-card p-4 space-y-1 col-span-2 md:col-span-4 lg:col-span-1">
+          <div class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Avg Confidence</div>
+          <div id="kpi-conf-val" class="overview-kpi-val text-2xl font-bold font-display text-slate-900 dark:text-white">0.0%</div>
+          <div class="text-[10px] text-slate-400">ONNX calibrated metric</div>
+        </div>
+
+      </div>
+
+      <!-- Content Grid: Sentiment Distribution & Urgent Attention -->
+      <div id="overview-content-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Sentiment Volume Breakdown & Category Progress -->
+        <div class="lg:col-span-7 space-y-6">
           
-          <div class="flex items-center justify-between mb-3">
-            <label for="sentiment-input" class="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center space-x-2">
-              <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <span>Enter Text to Analyze</span>
-            </label>
-            <span id="char-counter" class="text-xs text-slate-400 dark:text-slate-500">0 / 2000</span>
-          </div>
+          <!-- Stacked Distribution Bar -->
+          <div class="saas-card p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Sentiment Distribution</h3>
+              <a href="#analytics" class="nav-link text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium" data-view="analytics">Full Analytics →</a>
+            </div>
+            
+            <div class="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex">
+              <div id="overview-bar-pos" class="bg-emerald-500 h-full transition-all duration-700" style="width: 0%"></div>
+              <div id="overview-bar-neu" class="bg-blue-500 h-full transition-all duration-700" style="width: 0%"></div>
+              <div id="overview-bar-neg" class="bg-rose-500 h-full transition-all duration-700" style="width: 0%"></div>
+            </div>
 
-          <!-- Textarea Input -->
-          <div class="relative">
-            <textarea 
-              id="sentiment-input" 
-              rows="5" 
-              maxlength="2000"
-              placeholder="e.g. 'I was genuinely blown away by how easy and smooth this entire experience was!'"
-              class="w-full bg-white dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm sm:text-base rounded-xl p-4 border border-slate-300 dark:border-slate-700/80 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none transition-all resize-y"
-            ></textarea>
-          </div>
-
-          <!-- Quick Samples Pill Buttons -->
-          <div class="mt-4">
-            <span class="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-2">Try quick sample statements:</span>
-            <div class="flex flex-wrap gap-2">
-              <button type="button" class="sample-btn text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 transition-all hover:border-emerald-500/40 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center space-x-1.5" data-sample="I absolutely love this new update, it made everything so fast and easy!">
-                <span>✨</span>
-                <span>Positive Sample</span>
-              </button>
-              <button type="button" class="sample-btn text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 transition-all hover:border-blue-500/40 hover:text-blue-700 dark:hover:text-blue-300 flex items-center space-x-1.5" data-sample="The package was delivered at 3 PM today via standard ground shipping.">
-                <span>📦</span>
-                <span>Neutral Sample</span>
-              </button>
-              <button type="button" class="sample-btn text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 transition-all hover:border-rose-500/40 hover:text-rose-700 dark:hover:text-rose-300 flex items-center space-x-1.5" data-sample="Terrible customer service, it broke within hours and support refused to help.">
-                <span>👎</span>
-                <span>Negative Sample</span>
-              </button>
-              <button type="button" class="sample-btn text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 transition-all hover:border-slate-500/40 hover:text-slate-800 dark:hover:text-slate-200 flex items-center space-x-1.5" data-sample="asdfghjkl zxcvbnm">
-                <span>❓</span>
-                <span>Gibberish Sample</span>
-              </button>
+            <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <span>Positive</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                <span>Neutral</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <span>Negative</span>
+              </div>
             </div>
           </div>
 
-          <!-- Action Buttons -->
-          <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <button 
-              id="clear-btn" 
-              type="button" 
-              class="w-full sm:w-auto px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
-            >
-              Clear Input
-            </button>
-
-            <button 
-              id="analyze-btn" 
-              type="button" 
-              class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center space-x-2"
-            >
-              <span id="btn-icon">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-                </svg>
-              </span>
-              <span id="btn-text">Analyze Sentiment</span>
-            </button>
+          <!-- Category Sentiment Breakdown -->
+          <div class="saas-card p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Category Breakdown</h3>
+              <span class="text-[11px] text-slate-400">Top Categories</span>
+            </div>
+            <div id="overview-category-list" class="space-y-3">
+              <!-- Dynamically populated -->
+            </div>
           </div>
 
-          <!-- Error Alert Banner -->
-          <div id="error-alert" class="hidden mt-4 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-center space-x-2">
-            <svg class="w-4 h-4 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span id="error-message">Error analyzing text.</span>
+          <!-- Ingestion Sources -->
+          <div class="saas-card p-5 space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Feedback Channels & Sources</h3>
+            <div id="overview-source-list" class="space-y-2">
+              <!-- Dynamically populated -->
+            </div>
           </div>
 
         </div>
 
-        <!-- Recent History Section -->
-        <div class="glass-card rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center space-x-1.5">
-              <svg class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>Recent Analyses</span>
-            </h3>
-            <button id="clear-history-btn" class="text-[11px] text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300 transition-colors">Clear History</button>
-          </div>
-          <div id="history-container" class="space-y-2 text-xs text-slate-500 dark:text-slate-400">
-            <p class="text-slate-400 dark:text-slate-500 italic text-[11px]">No previous analyses yet. Run an analysis above!</p>
+        <!-- Right: Recent Negative Feedback Requiring Attention -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="saas-card p-5 space-y-4 border-l-4 border-l-rose-500">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center space-x-1.5">
+                  <span>🚨</span>
+                  <span>Needs Attention</span>
+                </h3>
+                <p class="text-[11px] text-slate-400 mt-0.5">High-confidence negative feedback items.</p>
+              </div>
+              <a href="#explorer" class="nav-link text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium" data-view="explorer">View Explorer →</a>
+            </div>
+
+            <div id="overview-negatives-list" class="space-y-2.5">
+              <!-- Dynamically populated with negative reviews -->
+            </div>
           </div>
         </div>
 
       </div>
 
-      <!-- Output / Results Dashboard (Right Column: 5 cols) -->
-      <div class="lg:col-span-5 space-y-6">
+    </div>
+
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 2: ANALYZE FEEDBACK (INFERENCE & DATABASE PERSISTENCE)           -->
+    <!-- ===================================================================== -->
+    <div id="view-analyze" class="hidden space-y-6">
+      
+      <div class="pb-4 border-b border-slate-200 dark:border-slate-800">
+        <h1 class="text-2xl font-bold font-display text-slate-900 dark:text-white">Analyze Customer Feedback</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Evaluate customer sentiment in real time with our INT8 Quantized ONNX Transformer model.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        <!-- Results Card -->
-        <div id="results-card" class="glass-card rounded-2xl p-6 sm:p-7 shadow-xl dark:shadow-2xl transition-all duration-300 border border-slate-200/80 dark:border-slate-800/80">
-          
-          <div class="flex items-center justify-between mb-6 pb-3 border-b border-slate-200 dark:border-slate-800/80">
-            <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Classification Result</h2>
-            <span id="latency-tag" class="text-[11px] font-mono text-slate-400 dark:text-slate-500">Awaiting input</span>
-          </div>
-
-          <!-- Empty State (Placeholder) -->
-          <div id="empty-state" class="py-12 text-center">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-center text-3xl animate-float">
-              💬
-            </div>
-            <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ready for Sentiment Analysis</p>
-            <p class="text-xs text-slate-500 max-w-xs mx-auto">
-              Type or select a sample sentence and click <span class="text-indigo-600 dark:text-indigo-400 font-medium">Analyze Sentiment</span> to inspect predictions and confidence metrics.
-            </p>
-          </div>
-
-          <!-- Active Prediction Results Display -->
-          <div id="active-results" class="hidden space-y-6">
+        <!-- Input Form (Left 7 cols) -->
+        <div class="lg:col-span-7 space-y-5">
+          <div class="saas-card p-6 space-y-4">
             
-            <!-- Hero Sentiment Badge & Emoji Indicator -->
-            <div id="sentiment-hero-box" class="p-6 rounded-2xl text-center border transition-all duration-300 flex flex-col items-center justify-center">
-              <div id="sentiment-emoji" class="text-5xl mb-2 filter drop-shadow">😊</div>
-              <div id="sentiment-label" class="text-2xl font-bold font-display uppercase tracking-wider mb-1">POSITIVE</div>
-              <div class="flex items-center space-x-1.5 text-xs font-semibold">
-                <span>Confidence:</span>
-                <span id="sentiment-confidence" class="font-mono text-sm">88.5%</span>
+            <div class="flex items-center justify-between">
+              <label for="analyze-text-input" class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Customer Feedback Text</label>
+              <span id="analyze-char-counter" class="text-[11px] text-slate-400 font-mono">0 / 2000</span>
+            </div>
+
+            <textarea 
+              id="analyze-text-input" 
+              rows="6" 
+              maxlength="2000"
+              placeholder="e.g. 'I was genuinely impressed by how quickly customer support resolved my refund ticket!'"
+              class="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-sm rounded-xl p-4 border border-slate-300 dark:border-slate-700/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all resize-y"
+            ></textarea>
+
+            <!-- Optional Context Metadata (Category, Source, Star Rating) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              <div>
+                <label for="analyze-category-input" class="block text-[11px] font-semibold text-slate-500 mb-1">Category (Optional)</label>
+                <input 
+                  type="text" 
+                  id="analyze-category-input" 
+                  placeholder="e.g. Support, Product, Billing" 
+                  class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label for="analyze-source-input" class="block text-[11px] font-semibold text-slate-500 mb-1">Channel / Source</label>
+                <select id="analyze-source-input" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500">
+                  <option value="web">Web Portal</option>
+                  <option value="email">Email Ticket</option>
+                  <option value="mobile">Mobile App</option>
+                  <option value="survey">Customer Survey</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="analyze-rating-input" class="block text-[11px] font-semibold text-slate-500 mb-1">Customer Rating</label>
+                <select id="analyze-rating-input" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500">
+                  <option value="">No Star Rating</option>
+                  <option value="5">⭐⭐⭐⭐⭐ (5 Stars)</option>
+                  <option value="4">⭐⭐⭐⭐ (4 Stars)</option>
+                  <option value="3">⭐⭐⭐ (3 Stars)</option>
+                  <option value="2">⭐⭐ (2 Stars)</option>
+                  <option value="1">⭐ (1 Star)</option>
+                </select>
               </div>
             </div>
 
-            <!-- Probability Breakdown Meters -->
-            <div class="space-y-3.5 pt-2">
-              <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Probability Breakdown</span>
+            <!-- Quick Sample Pills -->
+            <div class="pt-2">
+              <span class="text-[11px] text-slate-400 block mb-1.5">Try sample customer statements:</span>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" class="analyze-sample-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300 transition-colors" data-sample="I absolutely love this new update, it made everything so fast and easy!">✨ Positive Sample</button>
+                <button type="button" class="analyze-sample-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300 transition-colors" data-sample="The package was delivered at 3 PM today via standard ground shipping.">📦 Neutral Sample</button>
+                <button type="button" class="analyze-sample-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300 transition-colors" data-sample="Terrible customer service, it broke within hours and support refused to help.">🚨 Negative Sample</button>
+                <button type="button" class="analyze-sample-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300 transition-colors" data-sample="asdfghjkl zxcvbnm">⚠️ Gibberish Sample</button>
+              </div>
+            </div>
+
+            <!-- Action Controls & Database Persistence Toggle -->
+            <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center space-x-2">
+                <input type="checkbox" id="analyze-save-checkbox" checked class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 cursor-pointer" />
+                <label for="analyze-save-checkbox" class="text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
+                  Save to Customer Feedback Database
+                </label>
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <button type="button" id="analyze-clear-btn" class="px-3.5 py-2 rounded-xl text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Clear</button>
+                <button type="button" id="analyze-submit-btn" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 flex items-center space-x-2 transition-all">
+                  <span id="analyze-btn-spinner" class="hidden">
+                    <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                  </span>
+                  <span id="analyze-btn-text">Analyze Sentiment</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Output Visualization (Right 5 cols) -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="saas-card p-6 space-y-5">
+            
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Model Classification</h3>
+              <div class="flex items-center space-x-2">
+                <span id="analyze-latency-tag" class="text-[11px] font-mono text-slate-400">Awaiting input</span>
+              </div>
+            </div>
+
+            <!-- Empty Placeholder -->
+            <div id="analyze-empty-state" class="py-12 text-center text-slate-400 space-y-2">
+              <div class="text-3xl mb-1">💬</div>
+              <p class="text-xs font-medium text-slate-600 dark:text-slate-300">Ready for Sentiment Analysis</p>
+              <p class="text-[11px] text-slate-400 max-w-xs mx-auto">Submit feedback on the left to inspect prediction class, confidence breakdown, and explanation.</p>
+            </div>
+
+            <!-- Active Result Output -->
+            <div id="analyze-active-results" class="hidden space-y-5">
               
-              <!-- Positive Bar -->
-              <div>
-                <div class="flex justify-between text-xs mb-1">
-                  <span class="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-                    <span>Positive</span>
-                  </span>
-                  <span id="score-positive-pct" class="font-mono text-slate-700 dark:text-slate-300 font-medium">0.0%</span>
+              <!-- Sentiment Hero Box -->
+              <div id="analyze-sentiment-hero" class="p-6 rounded-2xl text-center border transition-all duration-300 flex flex-col items-center justify-center">
+                <div id="analyze-sentiment-emoji" class="text-5xl mb-2">🌟</div>
+                <div id="analyze-sentiment-label" class="text-xl font-bold font-display uppercase tracking-wider mb-1">POSITIVE</div>
+                <div class="flex items-center space-x-2 text-xs">
+                  <span class="text-slate-500 font-medium">Confidence:</span>
+                  <span id="analyze-sentiment-confidence" class="font-mono font-bold text-sm">92.4%</span>
                 </div>
-                <div class="w-full h-2.5 bg-slate-200 dark:bg-slate-800/90 rounded-full overflow-hidden">
-                  <div id="bar-positive" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-700" style="width: 0%"></div>
+                <div id="analyze-saved-tag" class="mt-2.5"></div>
+              </div>
+
+              <!-- Plain-English Interpretation -->
+              <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs">
+                <span class="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Interpretation:</span>
+                <p id="analyze-explanation-text" class="text-slate-500 dark:text-slate-400 leading-relaxed text-[11px]"></p>
+              </div>
+
+              <!-- Probability Distribution Bars -->
+              <div class="space-y-3 pt-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Class Probability Distribution</span>
+                
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="font-medium text-emerald-600 dark:text-emerald-400">Positive</span>
+                    <span id="analyze-pct-pos" class="font-mono text-slate-600 dark:text-slate-400 text-[11px]">0.0%</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div id="analyze-bar-pos" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="font-medium text-blue-600 dark:text-blue-400">Neutral</span>
+                    <span id="analyze-pct-neu" class="font-mono text-slate-600 dark:text-slate-400 text-[11px]">0.0%</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div id="analyze-bar-neu" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="font-medium text-rose-600 dark:text-rose-400">Negative</span>
+                    <span id="analyze-pct-neg" class="font-mono text-slate-600 dark:text-slate-400 text-[11px]">0.0%</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div id="analyze-bar-neg" class="h-full bg-rose-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Neutral Bar -->
-              <div>
-                <div class="flex justify-between text-xs mb-1">
-                  <span class="flex items-center space-x-1.5 text-blue-600 dark:text-blue-400 font-medium">
-                    <span>Neutral</span>
-                  </span>
-                  <span id="score-neutral-pct" class="font-mono text-slate-700 dark:text-slate-300 font-medium">0.0%</span>
-                </div>
-                <div class="w-full h-2.5 bg-slate-200 dark:bg-slate-800/90 rounded-full overflow-hidden">
-                  <div id="bar-neutral" class="h-full bg-gradient-to-r from-blue-500 to-sky-400 rounded-full transition-all duration-700" style="width: 0%"></div>
-                </div>
-              </div>
-
-              <!-- Negative Bar -->
-              <div>
-                <div class="flex justify-between text-xs mb-1">
-                  <span class="flex items-center space-x-1.5 text-rose-600 dark:text-rose-400 font-medium">
-                    <span>Negative</span>
-                  </span>
-                  <span id="score-negative-pct" class="font-mono text-slate-700 dark:text-slate-300 font-medium">0.0%</span>
-                </div>
-                <div class="w-full h-2.5 bg-slate-200 dark:bg-slate-800/90 rounded-full overflow-hidden">
-                  <div id="bar-negative" class="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full transition-all duration-700" style="width: 0%"></div>
+              <!-- Raw API JSON Accordion -->
+              <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button type="button" id="analyze-toggle-json" class="w-full flex items-center justify-between text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+                  <span>Inspect Raw API Response</span>
+                  <span class="font-mono text-[10px]">JSON ▼</span>
+                </button>
+                <div id="analyze-json-drawer" class="hidden mt-2">
+                  <pre id="analyze-raw-json" class="p-3 rounded-xl bg-slate-900 text-emerald-400 font-mono text-[10px] overflow-x-auto max-h-48"></pre>
                 </div>
               </div>
 
             </div>
 
-            <!-- Developer JSON Accordion -->
-            <div class="pt-3 border-t border-slate-200 dark:border-slate-800/80">
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 3: FEEDBACK EXPLORER (DATABASE MANAGEMENT)                       -->
+    <!-- ===================================================================== -->
+    <div id="view-explorer" class="hidden space-y-6">
+      
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div>
+          <h1 class="text-2xl font-bold font-display text-slate-900 dark:text-white">Customer Feedback Explorer</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Filter, search, inspect, and manage persistent customer feedback records.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button id="explorer-export-btn" class="px-3.5 py-2 rounded-xl saas-card text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center space-x-1.5">
+            <span>📄</span>
+            <span>Export CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters & Search Toolbar -->
+      <div class="saas-card p-4 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+          
+          <!-- Search Input -->
+          <div class="lg:col-span-4">
+            <input 
+              type="text" 
+              id="explorer-search-input" 
+              placeholder="Search feedback text..." 
+              class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <!-- Sentiment Filter -->
+          <div class="lg:col-span-2">
+            <select id="explorer-filter-sentiment" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="">All Sentiments</option>
+              <option value="positive">Positive</option>
+              <option value="neutral">Neutral</option>
+              <option value="negative">Negative</option>
+            </select>
+          </div>
+
+          <!-- Category Filter -->
+          <div class="lg:col-span-2">
+            <input 
+              type="text" 
+              id="explorer-filter-category" 
+              placeholder="Filter Category..." 
+              class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <!-- Source Filter -->
+          <div class="lg:col-span-2">
+            <select id="explorer-filter-source" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="">All Channels</option>
+              <option value="web">Web</option>
+              <option value="email">Email</option>
+              <option value="mobile">Mobile</option>
+              <option value="survey">Survey</option>
+              <option value="csv_import">CSV Import</option>
+            </select>
+          </div>
+
+          <!-- Sort Select -->
+          <div class="lg:col-span-2">
+            <select id="explorer-sort-select" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="created_at-desc">Newest First</option>
+              <option value="created_at-asc">Oldest First</option>
+              <option value="confidence-desc">Highest Confidence</option>
+              <option value="rating-desc">Highest Rating</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+          <span id="explorer-pagination-info">Loading records...</span>
+          <button id="explorer-reset-filters-btn" class="hover:text-slate-800 dark:hover:text-slate-200 font-medium">Reset Filters</button>
+        </div>
+      </div>
+
+      <!-- Feedback Records Table (Desktop) -->
+      <div class="saas-card overflow-hidden">
+        
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <th class="px-4 py-3">ID</th>
+                <th class="px-4 py-3">Feedback Text</th>
+                <th class="px-4 py-3">Sentiment</th>
+                <th class="px-4 py-3">Confidence</th>
+                <th class="px-4 py-3">Category</th>
+                <th class="px-4 py-3">Source</th>
+                <th class="px-4 py-3">Rating</th>
+                <th class="px-4 py-3">Date</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="explorer-table-body">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Cards List -->
+        <div id="explorer-mobile-cards" class="md:hidden p-4 space-y-3">
+          <!-- Dynamically rendered for mobile viewports -->
+        </div>
+
+        <!-- Empty Results Message -->
+        <div id="explorer-empty-state" class="hidden py-12 text-center text-slate-400">
+          <p class="text-xs font-medium text-slate-600 dark:text-slate-300">No matching customer feedback found.</p>
+          <p class="text-[11px] text-slate-400 mt-1">Try adjusting your search query or reset your active filters.</p>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+          <button id="explorer-prev-btn" class="px-3.5 py-1.5 rounded-lg saas-card text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed">← Previous</button>
+          <button id="explorer-next-btn" class="px-3.5 py-1.5 rounded-lg saas-card text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed">Next →</button>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 4: ANALYTICS & TRENDS                                            -->
+    <!-- ===================================================================== -->
+    <div id="view-analytics" class="hidden space-y-6">
+      
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div>
+          <h1 class="text-2xl font-bold font-display text-slate-900 dark:text-white">Customer Satisfaction Analytics</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Time-series sentiment distributions, daily trends, and category performance.</p>
+        </div>
+        <div class="flex items-center space-x-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          <button type="button" class="analytics-range-btn px-3 py-1 rounded-lg font-medium bg-indigo-600 text-white" data-range="all">All Time</button>
+          <button type="button" class="analytics-range-btn px-3 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-300" data-range="30d">Last 30 Days</button>
+          <button type="button" class="analytics-range-btn px-3 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-300" data-range="7d">Last 7 Days</button>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="analytics-empty-state" class="hidden p-12 text-center saas-card">
+        <p class="text-xs font-semibold text-slate-700 dark:text-slate-300">Insufficient analytics data</p>
+        <p class="text-[11px] text-slate-400 mt-1">Please ingest feedback to see historical sentiment trends.</p>
+      </div>
+
+      <!-- Analytics Visualizations -->
+      <div id="analytics-content-view" class="space-y-6">
+        
+        <!-- Summary Metric Pills -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div class="saas-card p-3.5 text-center">
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Analyzed</span>
+            <span id="analytics-summary-total" class="text-lg font-bold font-display text-slate-900 dark:text-white">0</span>
+          </div>
+          <div class="saas-card p-3.5 text-center">
+            <span class="text-[10px] uppercase font-bold text-emerald-500 block">Positive %</span>
+            <span id="analytics-summary-pos-pct" class="text-lg font-bold font-display text-emerald-600 dark:text-emerald-400">0.0%</span>
+          </div>
+          <div class="saas-card p-3.5 text-center">
+            <span class="text-[10px] uppercase font-bold text-blue-500 block">Neutral %</span>
+            <span id="analytics-summary-neu-pct" class="text-lg font-bold font-display text-blue-600 dark:text-blue-400">0.0%</span>
+          </div>
+          <div class="saas-card p-3.5 text-center">
+            <span class="text-[10px] uppercase font-bold text-rose-500 block">Negative %</span>
+            <span id="analytics-summary-neg-pct" class="text-lg font-bold font-display text-rose-600 dark:text-rose-400">0.0%</span>
+          </div>
+          <div class="saas-card p-3.5 text-center col-span-2 sm:col-span-1">
+            <span class="text-[10px] uppercase font-bold text-indigo-500 block">Avg Confidence</span>
+            <span id="analytics-summary-conf" class="text-lg font-bold font-display text-indigo-600 dark:text-indigo-400">0.0%</span>
+          </div>
+        </div>
+
+        <!-- Charts Grid 1: Daily Trends & Distribution -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-8 saas-card p-5 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Daily Sentiment Volume Trend</h3>
+            <div class="h-64 relative">
+              <canvas id="chart-trends"></canvas>
+            </div>
+          </div>
+
+          <div class="lg:col-span-4 saas-card p-5 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Sentiment Distribution</h3>
+            <div class="h-64 relative">
+              <canvas id="chart-distribution"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Grid 2: Category Breakdown & Sources -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-6 saas-card p-5 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Category Sentiment Polarity</h3>
+            <div class="h-60 relative">
+              <canvas id="chart-categories"></canvas>
+            </div>
+          </div>
+
+          <div class="lg:col-span-6 saas-card p-5 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Feedback Volumes by Source Channel</h3>
+            <div class="h-60 relative">
+              <canvas id="chart-sources"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- High-Priority Negative Feedback Panel -->
+        <div class="saas-card p-5 space-y-3 border-l-4 border-l-rose-500">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">High-Risk Customer Feedback Deep Dive</h3>
+            <p class="text-[11px] text-slate-400">Priority reviews that might require proactive customer success intervention.</p>
+          </div>
+          <div id="analytics-negative-items" class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 5: CSV BATCH IMPORT & EXPORT                                     -->
+    <!-- ===================================================================== -->
+    <div id="view-import-export" class="hidden space-y-6">
+      
+      <div class="pb-4 border-b border-slate-200 dark:border-slate-800">
+        <h1 class="text-2xl font-bold font-display text-slate-900 dark:text-white">Batch Import & Export</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Ingest customer reviews in bulk or export your complete database with formula-injection protection.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Left: Upload Zone (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+          
+          <div class="saas-card p-6 space-y-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Bulk Ingestion Pipeline</h3>
+            
+            <!-- Drag & Drop Zone -->
+            <div 
+              id="import-dropzone" 
+              class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center transition-colors cursor-pointer hover:border-indigo-500"
+            >
+              <input type="file" id="import-file-input" accept=".csv" class="hidden" />
+              
+              <div id="import-prompt-zone" class="space-y-2">
+                <div class="text-4xl mb-1">📂</div>
+                <p class="text-xs font-semibold text-slate-800 dark:text-slate-200">Drag & drop your CSV file here, or browse files</p>
+                <p class="text-[11px] text-slate-400">Maximum file size: 5 MB (Up to 5,000 rows per batch)</p>
+                <button type="button" id="import-select-btn" class="mt-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors">Select CSV File</button>
+              </div>
+
+              <div id="import-file-meta" class="hidden space-y-2">
+                <div class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 text-xs font-medium">
+                  <span>📄</span>
+                  <span id="import-file-name" class="font-mono">reviews.csv</span>
+                  <span id="import-file-size" class="text-slate-400">12 KB</span>
+                </div>
+                <div>
+                  <button type="button" id="import-cancel-btn" class="text-xs text-rose-500 hover:underline">Remove file</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Upload Submit Button -->
+            <div class="flex justify-end">
               <button 
-                id="toggle-json-btn" 
                 type="button" 
-                class="w-full flex items-center justify-between text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors py-1"
+                id="import-submit-btn" 
+                disabled 
+                class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-500 transition-all"
               >
-                <span class="flex items-center space-x-1.5">
-                  <svg class="w-3.5 h-3.5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-                  <span>API Response JSON</span>
-                </span>
-                <span id="json-chevron" class="text-slate-400 dark:text-slate-500 text-xs">▼</span>
+                Start Batch Ingestion
               </button>
-              <div id="json-container" class="hidden mt-2">
-                <pre id="json-viewer" class="bg-slate-900 dark:bg-slate-950 p-3 rounded-xl text-[11px] font-mono text-emerald-400 overflow-x-auto max-h-48 border border-slate-200 dark:border-slate-800"></pre>
+            </div>
+
+            <!-- Live Status & Progress Card -->
+            <div id="import-status-card" class="hidden p-4 rounded-xl saas-card space-y-3 border-indigo-500/30">
+              <div class="flex items-center justify-between text-xs">
+                <span id="import-progress-status" class="font-medium text-slate-700 dark:text-slate-300">Processing...</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div id="import-progress-bar" class="h-full bg-indigo-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+
+              <!-- Completion Summary -->
+              <div id="import-result-summary" class="hidden pt-3 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-900">
+                    <span class="text-[10px] text-slate-400 block">Total</span>
+                    <span id="import-stat-total" class="font-bold">0</span>
+                  </div>
+                  <div class="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
+                    <span class="text-[10px] block">Success</span>
+                    <span id="import-stat-success" class="font-bold">0</span>
+                  </div>
+                  <div class="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400">
+                    <span class="text-[10px] block">Failed</span>
+                    <span id="import-stat-failed" class="font-bold">0</span>
+                  </div>
+                </div>
+
+                <ul id="import-error-box" class="hidden p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-[11px] space-y-1 max-h-32 overflow-y-auto"></ul>
+
+                <div class="flex justify-end pt-1">
+                  <a href="#explorer" class="nav-link px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium" data-view="explorer">View Imported in Explorer →</a>
+                </div>
               </div>
             </div>
 
@@ -387,22 +908,36 @@
 
         </div>
 
-        <!-- Architecture & Model Card -->
-        <div class="glass-card rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800/60 text-xs space-y-2 text-slate-500 dark:text-slate-400 shadow-sm">
-          <div class="flex items-center justify-between text-slate-700 dark:text-slate-300 font-medium">
-            <span>Stack Overview</span>
-            <span class="text-emerald-600 dark:text-emerald-400 font-mono text-[11px]">Ready for Render</span>
-          </div>
-          <div class="grid grid-cols-2 gap-2 pt-1 text-[11px]">
-            <div class="p-2 rounded-lg bg-slate-100/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-              <span class="text-slate-400 dark:text-slate-500 block">Framework</span>
-              <span class="font-medium text-slate-700 dark:text-slate-200">FastAPI + Uvicorn</span>
+        <!-- Right: Specifications & Export Section (5 cols) -->
+        <div class="lg:col-span-5 space-y-6">
+          
+          <!-- Specifications Card -->
+          <div class="saas-card p-6 space-y-3 text-xs text-slate-600 dark:text-slate-400">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Accepted CSV Format</h3>
+            <p class="leading-relaxed">Your CSV file must include a header row with a text column. The system recognizes the following column names:</p>
+            
+            <div class="space-y-1.5 font-mono text-[11px] bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+              <div><span class="text-emerald-600 font-bold">text</span> (or <span class="text-emerald-600">review</span>, <span class="text-emerald-600">feedback</span>) [Required]</div>
+              <div><span class="text-indigo-500">category</span> [Optional, e.g. Support, Product]</div>
+              <div><span class="text-indigo-500">source</span> [Optional, e.g. Web, Email, Survey]</div>
+              <div><span class="text-indigo-500">rating</span> [Optional, 1–5 integer]</div>
             </div>
-            <div class="p-2 rounded-lg bg-slate-100/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-              <span class="text-slate-400 dark:text-slate-500 block">Model</span>
-              <span class="font-medium text-slate-700 dark:text-slate-200">TF-IDF + Calibrated LR</span>
-            </div>
+
+            <p class="text-[11px] text-slate-400">Encodings supported: UTF-8, UTF-8-BOM, Latin-1.</p>
           </div>
+
+          <!-- Secure Export Card -->
+          <div class="saas-card p-6 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Sanitized Database Export</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Download your complete customer feedback history as a CSV file. Formulas beginning with <code class="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">=, +, -, @</code> are neutralized to safeguard spreadsheet tools against formula injection.
+            </p>
+            <button type="button" id="import-export-btn" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium text-xs transition-colors flex items-center justify-center space-x-2">
+              <span>📄</span>
+              <span>Download CSV Export</span>
+            </button>
+          </div>
+
         </div>
 
       </div>
@@ -411,347 +946,94 @@
 
   </main>
 
-  <!-- Footer -->
-  <footer class="relative z-10 border-t border-slate-200 dark:border-slate-800/80 py-6 text-center text-xs text-slate-500">
-    <p>SentimentPulse AI • FastAPI Backend & Tailwind CSS • Ready for Render Deployment</p>
-  </footer>
+  <!-- ===================================================================== -->
+  <!-- GLOBAL MODALS                                                         -->
+  <!-- ===================================================================== -->
 
-  <!-- Vanilla JavaScript Logic -->
-  <script>
-    // Authentication State & Logout
-    const currentUsername = localStorage.getItem('username') || 'User';
+  <!-- Feedback Record Detail Modal -->
+  <div id="feedback-detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="saas-card max-w-lg w-full p-6 space-y-4 shadow-2xl animate-scale-up">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div class="flex items-center space-x-2">
+          <span class="font-mono text-xs text-slate-400 font-bold" id="detail-modal-id">#0</span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" id="detail-modal-sentiment">POSITIVE</span>
+        </div>
+        <button id="detail-modal-close" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-lg font-bold">&times;</button>
+      </div>
 
-    const userDisplayName = document.getElementById('user-display-name');
-    const userAvatarInitial = document.getElementById('user-avatar-initial');
-    const logoutBtn = document.getElementById('logout-btn');
+      <div class="space-y-3 text-xs">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Customer Review</span>
+          <p id="detail-modal-text" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 leading-relaxed max-h-40 overflow-y-auto"></p>
+        </div>
 
-    if (userDisplayName) {
-      userDisplayName.textContent = currentUsername;
-    }
-    if (userAvatarInitial) {
-      userAvatarInitial.textContent = currentUsername.charAt(0).toUpperCase();
-    }
+        <div class="grid grid-cols-2 gap-2 text-[11px]">
+          <div><span class="text-slate-400">Category:</span> <span id="detail-modal-category" class="font-medium"></span></div>
+          <div><span class="text-slate-400">Channel:</span> <span id="detail-modal-source" class="font-medium uppercase"></span></div>
+          <div><span class="text-slate-400">Rating:</span> <span id="detail-modal-rating" class="font-medium"></span></div>
+          <div><span class="text-slate-400">Confidence:</span> <span id="detail-modal-confidence" class="font-mono font-medium"></span></div>
+          <div><span class="text-slate-400">Model Version:</span> <span id="detail-modal-version" class="font-mono"></span></div>
+          <div><span class="text-slate-400">Recorded:</span> <span id="detail-modal-date" class="font-mono"></span></div>
+        </div>
 
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', async () => {
-        try {
-          await fetch('/logout', { method: 'POST' });
-        } catch (e) {
-          console.warn('Logout request failed:', e);
-        }
-        localStorage.removeItem('username');
-        localStorage.removeItem('email');
-        window.location.href = '/login';
-      });
-    }
-
-    // DOM Elements
-    const sentimentInput = document.getElementById('sentiment-input');
-    const charCounter = document.getElementById('char-counter');
-    const analyzeBtn = document.getElementById('analyze-btn');
-    const clearBtn = document.getElementById('clear-btn');
-    const btnIcon = document.getElementById('btn-icon');
-    const btnText = document.getElementById('btn-text');
-    const errorAlert = document.getElementById('error-alert');
-    const errorMessage = document.getElementById('error-message');
-    const sampleBtns = document.querySelectorAll('.sample-btn');
-
-    const resultsCard = document.getElementById('results-card');
-    const emptyState = document.getElementById('empty-state');
-    const activeResults = document.getElementById('active-results');
-    const sentimentHeroBox = document.getElementById('sentiment-hero-box');
-    const sentimentEmoji = document.getElementById('sentiment-emoji');
-    const sentimentLabel = document.getElementById('sentiment-label');
-    const sentimentConfidence = document.getElementById('sentiment-confidence');
-    const latencyTag = document.getElementById('latency-tag');
-
-    const scorePositivePct = document.getElementById('score-positive-pct');
-    const scoreNeutralPct = document.getElementById('score-neutral-pct');
-    const scoreNegativePct = document.getElementById('score-negative-pct');
-    const barPositive = document.getElementById('bar-positive');
-    const barNeutral = document.getElementById('bar-neutral');
-    const barNegative = document.getElementById('bar-negative');
-
-    const toggleJsonBtn = document.getElementById('toggle-json-btn');
-    const jsonContainer = document.getElementById('json-container');
-    const jsonViewer = document.getElementById('json-viewer');
-    const jsonChevron = document.getElementById('json-chevron');
-
-    const historyContainer = document.getElementById('history-container');
-    const clearHistoryBtn = document.getElementById('clear-history-btn');
-
-    // Local Storage Key
-    const STORAGE_KEY = 'sentiment_analysis_history';
-
-    // Character Counter
-    sentimentInput.addEventListener('input', () => {
-      charCounter.textContent = `${sentimentInput.value.length} / 2000`;
-      hideError();
-    });
-
-    // Keyboard shortcut (Ctrl + Enter)
-    sentimentInput.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        analyzeSentiment();
-      }
-    });
-
-    // Clear Input Button
-    clearBtn.addEventListener('click', () => {
-      sentimentInput.value = '';
-      charCounter.textContent = '0 / 2000';
-      hideError();
-      sentimentInput.focus();
-    });
-
-    // Sample buttons handler
-    sampleBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        sentimentInput.value = btn.getAttribute('data-sample');
-        charCounter.textContent = `${sentimentInput.value.length} / 2000`;
-        hideError();
-        analyzeSentiment();
-      });
-    });
-
-    // Toggle JSON response accordion
-    toggleJsonBtn.addEventListener('click', () => {
-      const isHidden = jsonContainer.classList.contains('hidden');
-      if (isHidden) {
-        jsonContainer.classList.remove('hidden');
-        jsonChevron.textContent = '▲';
-      } else {
-        jsonContainer.classList.add('hidden');
-        jsonChevron.textContent = '▼';
-      }
-    });
-
-    // Clear History
-    clearHistoryBtn.addEventListener('click', () => {
-      localStorage.removeItem(STORAGE_KEY);
-      renderHistory();
-    });
-
-    function showError(msg) {
-      errorMessage.textContent = msg;
-      errorAlert.classList.remove('hidden');
-    }
-
-    function hideError() {
-      errorAlert.classList.add('hidden');
-    }
-
-    function setLoading(isLoading) {
-      if (isLoading) {
-        analyzeBtn.disabled = true;
-        analyzeBtn.classList.add('opacity-75', 'cursor-not-allowed');
-        btnIcon.innerHTML = `
-          <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-          </svg>
-        `;
-        btnText.textContent = 'Analyzing...';
-      } else {
-        analyzeBtn.disabled = false;
-        analyzeBtn.classList.remove('opacity-75', 'cursor-not-allowed');
-        btnIcon.innerHTML = `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-          </svg>
-        `;
-        btnText.textContent = 'Analyze Sentiment';
-      }
-    }
-
-    // Main Analysis Function
-    async function analyzeSentiment() {
-      const text = sentimentInput.value.trim();
-      if (!text) {
-        showError('Please enter some text or select a sample sentence before analyzing.');
-        sentimentInput.focus();
-        return;
-      }
-
-      hideError();
-      setLoading(true);
-      const startTime = performance.now();
-
-      try {
-        const response = await fetch('/predict', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ text: text })
-        });
-
-        const elapsedMs = Math.round(performance.now() - startTime);
-
-        if (response.status === 401) {
-          showError('Session expired or unauthorized. Redirecting to sign in...');
-          localStorage.removeItem('username');
-          setTimeout(() => {
-            window.location.href = '/login';
-          }, 1200);
-          return;
-        }
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({ detail: 'Failed to process request.' }));
-          throw new Error(errData.detail || 'Prediction failed.');
-        }
-
-        const data = await response.json();
-        displayResults(data, elapsedMs);
-        saveToHistory(data);
-      } catch (err) {
-        console.error('Inference error:', err);
-        showError(err.message || 'Unable to connect to the sentiment prediction API.');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    analyzeBtn.addEventListener('click', analyzeSentiment);
-
-    // Display Result in UI
-    function displayResults(data, latencyMs) {
-      emptyState.classList.add('hidden');
-      activeResults.classList.remove('hidden');
-
-      latencyTag.textContent = `${latencyMs}ms inference`;
-
-      const sentiment = data.sentiment.toLowerCase();
-      const confidencePct = (data.confidence * 100).toFixed(1);
-
-      sentimentLabel.textContent = sentiment;
-      sentimentConfidence.textContent = `${confidencePct}%`;
-
-      // Reset Glow and Style
-      resultsCard.classList.remove('glow-positive', 'glow-neutral', 'glow-negative', 'glow-unknown');
-      sentimentHeroBox.className = 'p-6 rounded-2xl text-center border transition-all duration-300 flex flex-col items-center justify-center';
-
-      if (sentiment === 'unknown') {
-        sentimentEmoji.textContent = '⚠️';
-        sentimentLabel.textContent = 'UNRECOGNIZED TEXT';
-        sentimentLabel.className = 'text-2xl font-bold font-display uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1';
-        sentimentHeroBox.classList.add('bg-slate-100', 'dark:bg-slate-800/80', 'border-slate-300', 'dark:border-slate-700', 'text-slate-700', 'dark:text-slate-300');
-        resultsCard.classList.add('glow-unknown');
-      } else if (sentiment === 'positive') {
-        sentimentEmoji.textContent = '🌟';
-        sentimentLabel.textContent = 'POSITIVE';
-        sentimentLabel.className = 'text-2xl font-bold font-display uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1';
-        sentimentHeroBox.classList.add('bg-emerald-50', 'dark:bg-emerald-500/10', 'border-emerald-200', 'dark:border-emerald-500/30', 'text-emerald-800', 'dark:text-emerald-300');
-        resultsCard.classList.add('glow-positive');
-      } else if (sentiment === 'neutral') {
-        sentimentEmoji.textContent = '⚖️';
-        sentimentLabel.textContent = 'NEUTRAL';
-        sentimentLabel.className = 'text-2xl font-bold font-display uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-1';
-        sentimentHeroBox.classList.add('bg-blue-50', 'dark:bg-blue-500/10', 'border-blue-200', 'dark:border-blue-500/30', 'text-blue-800', 'dark:text-blue-300');
-        resultsCard.classList.add('glow-neutral');
-      } else {
-        sentimentEmoji.textContent = '👎';
-        sentimentLabel.textContent = 'NEGATIVE';
-        sentimentLabel.className = 'text-2xl font-bold font-display uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1';
-        sentimentHeroBox.classList.add('bg-rose-50', 'dark:bg-rose-500/10', 'border-rose-200', 'dark:border-rose-500/30', 'text-rose-800', 'dark:text-rose-300');
-        resultsCard.classList.add('glow-negative');
-      }
-
-      // Update probability bars
-      const posPct = ((data.scores.positive || 0) * 100).toFixed(1);
-      const neuPct = ((data.scores.neutral || 0) * 100).toFixed(1);
-      const negPct = ((data.scores.negative || 0) * 100).toFixed(1);
-
-      scorePositivePct.textContent = `${posPct}%`;
-      scoreNeutralPct.textContent = `${neuPct}%`;
-      scoreNegativePct.textContent = `${negPct}%`;
-
-      // Animate bar widths
-      setTimeout(() => {
-        barPositive.style.width = `${posPct}%`;
-        barNeutral.style.width = `${neuPct}%`;
-        barNegative.style.width = `${negPct}%`;
-      }, 50);
-
-      // Raw JSON update
-      jsonViewer.textContent = JSON.stringify(data, null, 2);
-    }
-
-    // Local Storage History
-    function saveToHistory(item) {
-      try {
-        let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        history.unshift({
-          text: item.text,
-          sentiment: item.sentiment,
-          confidence: item.confidence,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        });
-        if (history.length > 5) history = history.slice(0, 5);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-        renderHistory();
-      } catch (e) {
-        console.warn('Could not save history:', e);
-      }
-    }
-
-    function renderHistory() {
-      try {
-        const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        if (history.length === 0) {
-          historyContainer.innerHTML = '<p class="text-slate-400 dark:text-slate-500 italic text-[11px]">No previous analyses yet. Run an analysis above!</p>';
-          return;
-        }
-
-        historyContainer.innerHTML = history.map(item => {
-          let badgeColor = 'bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/30';
-          if (item.sentiment === 'positive') badgeColor = 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30';
-          if (item.sentiment === 'negative') badgeColor = 'bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/30';
-          if (item.sentiment === 'unknown') badgeColor = 'bg-slate-100 dark:bg-slate-700/40 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600';
-
-          return `
-            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900/80 transition-all flex items-center justify-between gap-3 cursor-pointer history-item" data-text="${encodeURIComponent(item.text)}">
-              <span class="truncate flex-1 text-slate-700 dark:text-slate-300 text-xs">${escapeHtml(item.text)}</span>
-              <div class="flex items-center space-x-2 flex-shrink-0">
-                <span class="text-[10px] px-2 py-0.5 rounded-full border ${badgeColor} font-semibold uppercase">${item.sentiment}</span>
-                <span class="text-[10px] text-slate-400 dark:text-slate-500">${item.timestamp}</span>
-              </div>
+        <!-- Scores Breakdown -->
+        <div class="pt-2 space-y-2">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Probability Breakdown</span>
+          
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-emerald-500 font-medium">Positive</span>
+              <span id="detail-modal-pos-val" class="font-mono">0%</span>
             </div>
-          `;
-        }).join('');
+            <div class="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div id="detail-modal-pos-bar" class="bg-emerald-500 h-full" style="width: 0%"></div>
+            </div>
 
-        // Attach click listeners to history items
-        document.querySelectorAll('.history-item').forEach(el => {
-          el.addEventListener('click', () => {
-            const decoded = decodeURIComponent(el.getAttribute('data-text'));
-            sentimentInput.value = decoded;
-            charCounter.textContent = `${decoded.length} / 2000`;
-            analyzeSentiment();
-          });
-        });
-      } catch (e) {
-        console.warn('History render error:', e);
-      }
-    }
+            <div class="flex justify-between text-[11px]">
+              <span class="text-blue-500 font-medium">Neutral</span>
+              <span id="detail-modal-neu-val" class="font-mono">0%</span>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div id="detail-modal-neu-bar" class="bg-blue-500 h-full" style="width: 0%"></div>
+            </div>
 
-    function escapeHtml(str) {
-      return str.replace(/[&<>'"]/g, tag => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        "'": '&#39;',
-        '"': '&quot;'
-      }[tag] || tag));
-    }
+            <div class="flex justify-between text-[11px]">
+              <span class="text-rose-500 font-medium">Negative</span>
+              <span id="detail-modal-neg-val" class="font-mono">0%</span>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div id="detail-modal-neg-bar" class="bg-rose-500 h-full" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    // Initialize on load
-    window.addEventListener('DOMContentLoaded', () => {
-      renderHistory();
-      if (typeof window.initThemeUI === 'function') {
-        window.initThemeUI();
-      }
-    });
-  </script>
+      <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end space-x-2">
+        <button id="detail-modal-delete-btn" class="px-3.5 py-1.5 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-medium">Delete Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Confirm Delete Modal -->
+  <div id="global-confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="saas-card max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      <div class="text-2xl mb-1">⚠️</div>
+      <h3 id="confirm-modal-title" class="text-sm font-bold text-slate-900 dark:text-white">Confirm Action</h3>
+      <p id="confirm-modal-message" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed"></p>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button id="confirm-modal-cancel" class="px-3 py-1.5 rounded-xl saas-card text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800">Cancel</button>
+        <button id="confirm-modal-btn" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium">Confirm Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Modular Scripts -->
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/overview.js"></script>
+  <script src="/static/js/analyze.js"></script>
+  <script src="/static/js/explorer.js"></script>
+  <script src="/static/js/analytics.js"></script>
+  <script src="/static/js/imports.js"></script>
+  <script src="/static/js/app.js"></script>
 </body>
 </html>

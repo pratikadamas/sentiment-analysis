@@ -1,62 +1,92 @@
 """
-FastAPI Backend for 3-Class Sentiment Analysis Application.
+FastAPI Backend for Sentiment Pulse Customer Feedback Intelligence Platform.
 Features:
-- Async endpoints with Pydantic request & response validation
-- Application lifespan event for model preloading
-- CORS middleware enabled
-- Healthcheck, Single Prediction, and Batch Prediction endpoints
-- Template/Static support for Frontend (Phase 3)
+- Lifespan initialization for database and ONNX inference engine
+- Correlation ID middleware (X-Request-ID) and latency tracking
+- Production CORS and security middleware
+- User authentication, JWT sessions, and rate limiting
+- Customer feedback persistence, pagination, multi-criteria filtering, and deletion
+- Real-time single and batch prediction endpoints
+- Bounded CSV chunked imports and formula-injection-safe exports
+- Business intelligence analytics and customer sentiment trends
+- Separation of liveness, readiness, and monitoring health checks
+- Interactive OpenAPI / Swagger documentation
 """
 
 import os
-import json
 from contextlib import asynccontextmanager
 from typing import Dict, List, Optional, Any
-import logging
 
 from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
-from pydantic import BaseModel, Field, field_validator
+from fastapi.responses import HTMLResponse, FileResponse
 
-from model import SentimentAnalyzer
-from database import init_db, User
-from auth import router as auth_router, get_current_user, get_token
+from core.config import settings
+from core.logging import setup_logging, get_logger
+from core.middleware import RequestContextMiddleware
+from db.session import init_db
+from db.models import User
+from services.sentiment_service import sentiment_service
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Routers
+from api.routes.auth import router as auth_router, get_current_user, get_token
+from api.routes.predictions import router as predictions_router
+from api.routes.feedback import router as feedback_router, api_router as api_feedback_router
+from api.routes.imports import router as imports_router, api_router as api_imports_router
+from api.routes.analytics import router as analytics_router, api_router as api_analytics_router
+from api.routes.health import router as health_router, load_model_metrics
 
-# Lifespan context manager to load and warm up the model and ensure DB tables exist
+# Re-exported Pydantic Schemas for backward compatibility
+from schemas.prediction import (
+    SentimentRequest,
+    SentimentScores,
+    SentimentResponse,
+    BatchSentimentRequest,
+    BatchSentimentResponse,
+)
+from schemas.health import HealthResponse
+
+# Initialize structured logging
+setup_logging()
+logger = get_logger(__name__)
+
+
+# Lifespan context manager for startup and shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Initializing SQLite database tables...")
+    logger.info("Initializing database schema...")
     init_db()
-    logger.info("Initializing SentimentAnalyzer model during startup...")
-    app.state.analyzer = SentimentAnalyzer()
-    logger.info("Model preloaded and ready for incoming inference requests.")
+    logger.info("Verifying SentimentAnalyzer inference engine readiness...")
+    if not sentiment_service.is_ready():
+        sentiment_service._initialize()
+    app.state.analyzer = sentiment_service.analyzer
+    logger.info("Inference engine ready. Starting API server.")
     yield
-    logger.info("Application shutting down.")
+    logger.info("Sentiment Pulse application shutting down.")
+
 
 app = FastAPI(
-    title="Sentiment Analysis API",
-    description="High-performance async REST API with JWT Auth for 3-class sentiment analysis (positive, neutral, negative).",
-    version="1.1.0",
+    title="Sentiment Pulse Intelligence Platform API",
+    description="Customer feedback sentiment analysis platform with JWT Auth, persistent feedback records, batch CSV ingestion, and business intelligence.",
+    version=settings.APP_VERSION,
     lifespan=lifespan
 )
 
-# Enable CORS for seamless frontend and cross-origin requests
+# 1. Attach Request Context Middleware (X-Request-ID & X-Process-Time)
+app.add_middleware(RequestContextMiddleware)
+
+# 2. Attach CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Setup directories for static files and templates
+# 3. Mount Templates & Static Files
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
@@ -67,112 +97,38 @@ os.makedirs(STATIC_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
-# Mount authentication routes (/register, /login, /me)
+
+# 4. Include Route Handlers (Mount static subpaths before parameterized /{id} paths)
+app.include_router(health_router)
 app.include_router(auth_router)
+app.include_router(predictions_router)
+app.include_router(analytics_router)
+app.include_router(api_analytics_router)
+app.include_router(imports_router)
+app.include_router(api_imports_router)
+app.include_router(feedback_router)
+app.include_router(api_feedback_router)
 
 
-# ==========================================
-# Pydantic Schemas
-# ==========================================
-
-class SentimentRequest(BaseModel):
-    text: str = Field(
-        ...,
-        min_length=1,
-        max_length=2000,
-        description="The text to analyze",
-        examples=["I absolutely love using this application, it works flawlessly!"]
-    )
-
-    @field_validator("text")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        trimmed = v.strip()
-        if not trimmed:
-            raise ValueError("Input text cannot be empty or purely whitespace.")
-        return trimmed
-
-
-class SentimentScores(BaseModel):
-    positive: float = Field(..., ge=0.0, le=1.0)
-    neutral: float = Field(..., ge=0.0, le=1.0)
-    negative: float = Field(..., ge=0.0, le=1.0)
-
-
-class SentimentResponse(BaseModel):
-    text: str
-    sentiment: str = Field(..., description="Predicted sentiment: 'positive', 'neutral', 'negative', or 'unknown'")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score between 0 and 1")
-    scores: Dict[str, float] = Field(..., description="Probability breakdown across all 3 classes")
-
-
-class BatchSentimentRequest(BaseModel):
-    texts: List[str] = Field(
-        ...,
-        min_length=1,
-        max_length=50,
-        description="List of text strings to analyze"
-    )
-
-    @field_validator("texts")
-    @classmethod
-    def validate_texts(cls, v: List[str]) -> List[str]:
-        cleaned = [t.strip() for t in v if t.strip()]
-        if not cleaned:
-            raise ValueError("Batch must contain at least one non-empty text string.")
-        return cleaned
-
-
-class BatchSentimentResponse(BaseModel):
-    count: int
-    results: List[SentimentResponse]
-
-
-METRICS_PATH = os.path.join(BASE_DIR, "model_metrics.json")
-
-
-def get_model_metrics() -> Dict[str, Any]:
-    if os.path.exists(METRICS_PATH):
-        try:
-            with open(METRICS_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.warning(f"Could not load model_metrics.json: {e}")
-    return {}
-
-
-class HealthResponse(BaseModel):
-    status: str
-    model_loaded: bool
-    version: str
-    model_version: Optional[str] = None
-    training_date: Optional[str] = None
-    dataset_name: Optional[str] = None
-    test_macro_f1: Optional[float] = None
-
-
-# ==========================================
-# REST API Endpoints
-# ==========================================
-
+# 5. Frontend HTML Routes (Preserving Full Backward Compatibility)
 @app.get("/", response_class=HTMLResponse)
 async def serve_index(request: Request, current_user: User = Depends(get_current_user)):
     """
-    Renders the web frontend interface (Phase 3).
-    If templates/index.html is not yet created, returns a friendly status page.
+    Renders the web frontend interface.
+    Requires authenticated user (redirects to /login if unauthenticated).
     """
     index_path = os.path.join(TEMPLATES_DIR, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
     
     return HTMLResponse(
-        content="""
+        content=f"""
         <!DOCTYPE html>
         <html>
-        <head><title>Sentiment Analysis API</title></head>
+        <head><title>{settings.APP_NAME}</title></head>
         <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-            <h2>Sentiment Analysis API is Running</h2>
-            <p>Phase 2 (FastAPI Backend with Auth) is active!</p>
+            <h2>{settings.APP_NAME} API is Running</h2>
+            <p>Welcome, {current_user.username}!</p>
             <p>Interactive API Docs: <a href="/docs">/docs</a> | Healthcheck: <a href="/health">/health</a></p>
         </body>
         </html>
@@ -199,88 +155,9 @@ async def serve_register(request: Request):
     return HTMLResponse("<h2>Register Page</h2><p>Template under construction.</p>", status_code=200)
 
 
-@app.get("/health", response_model=HealthResponse, tags=["System"])
-@app.get("/api/health", response_model=HealthResponse, tags=["System"])
-async def healthcheck():
-    """
-    Health check endpoint for Render monitoring and uptime checks.
-    Returns service health and model metadata from model_metrics.json.
-    """
-    is_loaded = hasattr(app.state, "analyzer") and app.state.analyzer is not None
-    metrics = get_model_metrics()
-    model_version = metrics.get("version", "2.0.0")
-    return HealthResponse(
-        status="healthy",
-        model_loaded=is_loaded,
-        version=model_version,
-        model_version=model_version,
-        training_date=metrics.get("training_date"),
-        dataset_name=metrics.get("dataset_name"),
-        test_macro_f1=metrics.get("test_macro_f1")
-    )
-
-
-@app.post("/predict", response_model=SentimentResponse, tags=["Inference"])
-@app.post("/api/predict", response_model=SentimentResponse, tags=["Inference"])
-async def predict_sentiment(
-    payload: SentimentRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Analyzes the sentiment of a single input string. Requires a valid JWT token.
-    Returns the predicted class (positive, neutral, negative), confidence, and full score distribution.
-    """
-    try:
-        analyzer: SentimentAnalyzer = app.state.analyzer
-        result = analyzer.predict(payload.text)
-        return SentimentResponse(
-            text=result["text"],
-            sentiment=result["sentiment"],
-            confidence=result["confidence"],
-            scores=result["scores"]
-        )
-    except ValueError as ve:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(ve)
-        )
-    except Exception as e:
-        logger.error(f"Inference error: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while analyzing sentiment."
-        )
-
-
-@app.post("/predict/batch", response_model=BatchSentimentResponse, tags=["Inference"])
-@app.post("/api/predict/batch", response_model=BatchSentimentResponse, tags=["Inference"])
-async def predict_batch_sentiment(
-    payload: BatchSentimentRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Analyzes sentiment for a batch of text strings (up to 50 at a time). Requires a valid JWT token.
-    """
-    analyzer: SentimentAnalyzer = app.state.analyzer
-    results: List[SentimentResponse] = []
-
-    for item in payload.texts:
-        try:
-            res = analyzer.predict(item)
-            results.append(SentimentResponse(
-                text=res["text"],
-                sentiment=res["sentiment"],
-                confidence=res["confidence"],
-                scores=res["scores"]
-            ))
-        except Exception as e:
-            logger.warning(f"Failed to analyze item in batch: {item} - {e}")
-            continue
-
-    return BatchSentimentResponse(
-        count=len(results),
-        results=results
-    )
+# Helper function kept for backwards compatibility
+def get_model_metrics() -> Dict[str, Any]:
+    return load_model_metrics()
 
 
 if __name__ == "__main__":

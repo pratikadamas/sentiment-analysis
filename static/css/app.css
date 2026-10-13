@@ -1,0 +1,150 @@
+/* ==============================================================================
+   Sentiment Pulse - Global Stylesheet (app.css)
+   Polished SaaS aesthetics, accessible focus states, custom scrollbars & utilities
+   ============================================================================== */
+
+/* Custom Smooth Transitions */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Accessible Focus Indicators */
+:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Polished Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
+
+/* Glassmorphism & SaaS Card Styles */
+.saas-card {
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+}
+
+.dark .saas-card {
+  background-color: #111827;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+}
+
+/* Subtle glow effects for sentiment cards */
+.glow-positive {
+  box-shadow: 0 0 25px -4px rgba(16, 185, 129, 0.25);
+}
+
+.glow-neutral {
+  box-shadow: 0 0 25px -4px rgba(59, 130, 246, 0.25);
+}
+
+.glow-negative {
+  box-shadow: 0 0 25px -4px rgba(244, 63, 94, 0.25);
+}
+
+/* Sentiment Badge Utilities */
+.badge-positive {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.dark .badge-positive {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.badge-neutral {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+.dark .badge-neutral {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.badge-negative {
+  background-color: rgba(244, 63, 94, 0.1);
+  color: #e11d48;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+.dark .badge-negative {
+  background-color: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.badge-unknown {
+  background-color: rgba(100, 116, 139, 0.1);
+  color: #475569;
+  border: 1px solid rgba(100, 116, 139, 0.25);
+}
+.dark .badge-unknown {
+  background-color: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+  border-color: rgba(100, 116, 139, 0.3);
+}
+
+/* Skeleton loader animation */
+@keyframes skeleton-shimmer {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.skeleton {
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  background-color: rgba(226, 232, 240, 0.8);
+}
+.dark .skeleton {
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+/* Toast notification enter animation */
+@keyframes toast-slide-in {
+  from {
+    transform: translateY(100%) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.toast-animate {
+  animation: toast-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Drag and drop active state */
+.drag-active {
+  border-color: #6366f1 !important;
+  background-color: rgba(99, 102, 241, 0.05) !important;
+}
+.dark .drag-active {
+  background-color: rgba(99, 102, 241, 0.12) !important;
+}

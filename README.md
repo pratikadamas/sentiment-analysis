@@ -1,185 +1,222 @@
-# Sentiment Pulse
+# Sentiment Pulse — Customer Feedback Intelligence Platform
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?style=flat&logo=FastAPI&logoColor=white)](https://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.143+-009688.svg?style=flat&logo=FastAPI&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
-[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.7+-F7931E.svg?style=flat&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791.svg?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-38B2AC.svg?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-1.23+-005CED.svg?style=flat&logo=onnx&logoColor=white)](https://onnxruntime.ai/)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-D71F00.svg?style=flat&logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org/)
+[![Alembic](https://img.shields.io/badge/Alembic-Migrations-red.svg?style=flat)](https://alembic.sqlalchemy.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-psycopg3-336791.svg?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Render](https://img.shields.io/badge/Deploy-Render-46E3B7.svg?style=flat&logo=render&logoColor=white)](https://render.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Sentiment Pulse** is a production-grade, full-stack Natural Language Processing (NLP) web application delivering real-time 3-class sentiment classification (**Positive**, **Neutral**, and **Negative**). Trained on a balanced subset of the Yelp Review Full dataset with Scikit-Learn and Platt sigmoid probability calibration, Sentiment Pulse pairs sub-5ms inference speeds with enterprise-grade JWT authentication, cloud database persistence, and an interactive modern interface.
+**Sentiment Pulse** is a production-grade customer feedback intelligence platform built on **FastAPI**, **PostgreSQL / SQLite**, **SQLAlchemy 2.0**, **Alembic**, and **ONNX Runtime (INT8 Quantized Transformer)**. It enables businesses to ingest customer reviews via API or bulk CSV, classify sentiment with sub-25ms latency, monitor customer experience trends, and proactively detect churn risks with multi-tenant data isolation.
 
 ---
 
 ## 🚀 Key Features
 
-* **⚡ Calibrated ML Inference (v2.0.0):** Production Scikit-Learn pipeline (`TfidfVectorizer` + `LogisticRegression` wrapped in `CalibratedClassifierCV(method="sigmoid", cv=3)`). Trained on 60,000 Yelp reviews, tuned strictly on validation data, and achieving **75.14% Test Accuracy** and **0.7491 Test Macro-F1** on unseen test data with true, well-calibrated class probabilities.
-* **🔐 Secure JWT Authentication:** Complete User Registration, Login, and Logout workflow using JSON Web Tokens (JWT) with Passlib/Bcrypt password hashing and route-level security guards.
-* **💾 Cloud Database with Fallback:** Production-ready PostgreSQL storage via SQLAlchemy 2.0 with connection pooling. Automatically falls back to local SQLite (`sentiment.db`) when `DATABASE_URL` is absent.
-* **🎨 Modern Responsive UI:** Polished interface styled with Tailwind CSS, glassmorphism aesthetics, dynamic prediction meters, and confidence dials.
-* **🌓 Persistent Light / Dark Mode:** Custom Vanilla JavaScript theme engine on the main dashboard supporting explicit user toggle, `localStorage` persistence, and OS-level (`prefers-color-scheme`) system preferences.
-* **📦 Batch Inference API:** Dedicated batch processing endpoint capable of analyzing up to 50 text payloads concurrently in a single HTTP request.
-* **📊 Model Metrics & Health Monitoring:** `/health` endpoint exposes real-time service uptime alongside trained model version (`2.0.0`), training timestamp, dataset name, and test macro-F1 from `model_metrics.json`.
-* **📖 Automatic Swagger Documentation:** Interactive OpenAPI documentation and API sandbox available immediately at `/docs`.
+* **⚡ Ultra-Fast ONNX Transformer Inference:** Powered by an INT8 dynamically quantized transformer (`sentiment_model.onnx`, 67.4MB) and Hugging Face tokenizer (`tokenizer.json`). Runs on CPU with **sub-25ms latency**, lightweight memory footprint (<90MB RAM), and zero PyTorch production dependencies.
+* **💾 Enterprise Database & Schema Migrations:** Multi-dialect SQLAlchemy 2.0 engine supporting local SQLite and managed PostgreSQL on Render via `psycopg` (Psycopg 3). Full schema evolution managed with **Alembic migrations** (no unsafe `create_all()` in production).
+* **🔐 Hardened Authentication & Security:** Bcrypt password hashing, JWT signing (HS256) with expiration, HTTP-only `SameSite=Lax` Secure cookie session management, client IP rate-limiting, and strict **IDOR protection** scoping all operations to authenticated tenants.
+* **📋 Persistent Customer Feedback API:** Full CRUD lifecycle for customer feedback records including category tagging, source channel attributes, customer ratings (1–5), and persisted probability score distributions.
+* **📊 Business Intelligence & Sentiment Trends:** Server-side SQL aggregations providing volume metrics, sentiment percentages, temporal trends grouped by day, category breakdown, and proactive highlighting of recent negative feedback.
+* **📦 Bounded CSV Batch Ingestion & Secure Export:** Upload CSV reviews up to 5,000 rows in bounded streaming chunks with progress tracking (`ImportJob`), encoding autodetection, and **CSV Formula Injection Sanitization** (`=`, `+`, `-`, `@`) on export.
+* **🔭 Production Observability:** Request correlation IDs (`X-Request-ID`), execution latency metrics (`X-Process-Time`), structured logging with credential masking, separated liveness (`/health/live`) and readiness (`/health/ready`) probes.
 
 ---
 
-## 📈 Model Performance & Metrics (v2.0.0)
-
-| Metric | Value |
-| :--- | :--- |
-| **Dataset** | Yelp Review Full (Subsampled & Balanced) |
-| **Splits** | Train: 60,000 \| Validation: 7,500 \| Test: 15,000 |
-| **Selected Hyperparameters** | $C = 1.0$, `ngram_range = (1, 2)`, `sublinear_tf = True` (chosen on Val Macro-F1: 0.7506) |
-| **Probability Calibration** | `CalibratedClassifierCV(method="sigmoid", cv=3)` (Platt scaling) |
-| **Test Accuracy** | **75.14%** (15,000 unseen test reviews) |
-| **Test Macro-F1** | **0.7491** |
-| **Per-Class F1 (Test)** | Negative: **0.7969** \| Neutral: **0.6466** \| Positive: **0.8038** |
-| **Per-Class Precision (Test)** | Negative: **0.7796** \| Neutral: **0.6784** \| Positive: **0.7868** |
-| **Per-Class Recall (Test)** | Negative: **0.8150** \| Neutral: **0.6176** \| Positive: **0.8216** |
-
-The confusion matrix on the unseen test set is saved to [`reports/confusion_matrix.png`](./reports/confusion_matrix.png).
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technologies |
-| :--- | :--- |
-| **Backend Framework** | [FastAPI](https://fastapi.tiangolo.com/), [Uvicorn](https://www.uvicorn.org/), [Pydantic v2](https://docs.pydantic.dev/) |
-| **Machine Learning** | [Scikit-Learn](https://scikit-learn.org/), [Joblib](https://joblib.readthedocs.io/), [Matplotlib](https://matplotlib.org/) |
-| **Data Processing** | [Hugging Face Datasets](https://huggingface.co/docs/datasets), [Pandas](https://pandas.pydata.org/) |
-| **Database & ORM** | [PostgreSQL](https://www.postgresql.org/), [SQLAlchemy 2.0](https://www.sqlalchemy.org/), [Psycopg](https://www.psycopg.org/), [SQLite](https://www.sqlite.org/) |
-| **Authentication & Security** | [Python-Jose (JWT)](https://python-jose.readthedocs.io/), [Passlib (Bcrypt)](https://passlib.readthedocs.io/) |
-| **Frontend & Styling** | HTML5, Vanilla JavaScript, [Tailwind CSS](https://tailwindcss.com/), Google Fonts |
-| **Cloud & Deployment** | [Render](https://render.com/) (Web Service + Managed PostgreSQL) |
-
----
-
-## 📁 Repository Structure
+## 🛠️ Architecture & Tech Stack
 
 ```text
-├── main.py                     # FastAPI application, routing, and /health metadata endpoint
-├── auth.py                     # Authentication router, JWT token issuance, and password hashing
-├── database.py                 # SQLAlchemy configuration, engine pooling, and User model
-├── model.py                    # SentimentAnalyzer inference engine (Singleton pattern)
-├── prepare_data.py             # Downloads Yelp dataset and builds train/val/test balanced splits
-├── train_model.py              # Hyperparameter tuning, 3-fold calibration, and evaluation pipeline
-├── check_handwritten.py        # Diagnostic script reporting on sanity and stress test samples
-├── sentiment_model.joblib      # Serialized calibrated model artifact
-├── model_metrics.json          # Complete training metadata, hyperparameters, and test metrics
-├── requirements.txt            # Production API dependencies
-├── requirements-train.txt      # Data preparation and training dependencies
-├── render.yaml                 # Infrastructure-as-code blueprint for Render
-├── data/                       # Prepared balanced splits (train.csv, val.csv, test.csv)
-├── reports/
-│   └── confusion_matrix.png    # High-resolution test confusion matrix plot
-├── tests/
-│   ├── __init__.py
-│   └── handwritten_samples.py  # 84 sanity samples and linguistic stress test inputs
-├── static/
-│   └── theme.js                # Light/Dark mode state management and DOM synchronization
-├── templates/
-│   ├── index.html              # Main sentiment dashboard
-│   ├── login.html              # User sign-in page
-│   └── register.html           # User registration page
-├── test_api.py                 # Automated integration tests for FastAPI endpoints
-└── test_model.py               # Unit tests for SentimentAnalyzer inference correctness
+├── main.py                         # ASGI entry point, lifespan, CORS, middleware assembly
+├── auth.py                         # Backward-compatible authentication facade
+├── database.py                     # Backward-compatible database facade
+├── model.py                        # Core ONNX SentimentAnalyzer singleton engine
+├── core/
+│   ├── config.py                   # Centralized Pydantic Settings & environment validation
+│   ├── logging.py                  # Structured logging & credential sanitization
+│   ├── middleware.py               # X-Request-ID & X-Process-Time middleware
+│   └── security.py                 # Bcrypt hashing, JWT generation, rate limiting
+├── db/
+│   ├── session.py                  # SQLAlchemy engine, connection pooling & get_db dependency
+│   └── models.py                   # ORM models (User, Feedback, ImportJob)
+├── alembic/                        # Alembic migration environment
+│   ├── env.py                      # Dynamic database URL & batch migration configuration
+│   └── versions/                   # Versioned migration scripts
+├── schemas/                        # Pydantic v2 validation contracts
+│   ├── auth.py                     # User registration & token schemas
+│   ├── prediction.py               # Inference request & response schemas
+│   ├── feedback.py                 # Feedback CRUD, filtering & stats schemas
+│   ├── import_job.py               # Import job tracking schemas
+│   ├── analytics.py                # Business intelligence & trend schemas
+│   └── health.py                   # Health, liveness & readiness schemas
+├── services/
+│   ├── sentiment_service.py        # Inference lifecycle & latency benchmarking
+│   ├── feedback_service.py         # Feedback CRUD, pagination & ownership enforcement
+│   ├── analytics_service.py        # SQL aggregations & negative feedback tracking
+│   └── import_service.py           # Chunked CSV ingestion & formula-safe exports
+├── api/
+│   └── routes/
+│       ├── auth.py                 # /register, /login, /logout, /me
+│       ├── predictions.py          # /predict, /predict/batch
+│       ├── feedback.py             # /feedback, /feedback/{id}, /feedback/stats, /feedback/export
+│       ├── imports.py              # /feedback/import, /feedback/import/{job_id}
+│       ├── analytics.py            # /feedback/analytics
+│       └── health.py               # /health, /health/live, /health/ready
+├── templates/                      # Frontend HTML templates
+│   ├── index.html                  # Main SaaS dashboard shell (Overview, Analyze, Explorer, Analytics, Imports)
+│   ├── login.html                  # Accessible sign-in page with theme toggle
+│   └── register.html               # User registration page with client-side validation
+├── static/                         # Static assets & modular JavaScript
+│   ├── css/
+│   │   └── app.css                 # SaaS design tokens, card styles, badges, focus rings, toast animations
+│   ├── js/
+│   │   ├── api.js                  # Centralized REST API client wrapper
+│   │   ├── overview.js             # Overview KPI metrics & recent alert card controller
+│   │   ├── analyze.js              # Real-time sentiment prediction & persistence controller
+│   │   ├── explorer.js             # Feedback table, pagination, search & detail modal controller
+│   │   ├── analytics.js            # Chart.js data visualization & temporal trend controller
+│   │   ├── imports.js              # Drag-and-drop CSV batch import & export controller
+│   │   └── app.js                  # Shell routing, navigation, modals & toast notification manager
+│   └── theme.js                    # Zero-FOUC light/dark theme persistence controller
+├── tests/                          # Automated integration, security & frontend test suites
+├── render.yaml                     # Infrastructure-as-Code deployment blueprint
+├── requirements.txt                # Production backend dependencies
+└── .env.example                    # Environment configuration template
 ```
 
 ---
 
 ## 💻 Local Setup & Installation
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/<your-username>/sentiment-pulse.git
-cd sentiment-pulse
-```
+### 1. Prerequisites
+- Python 3.10+
+- SQLite (included) or PostgreSQL 14+
 
-### 2. Create and Activate Virtual Environment
+### 2. Clone & Setup Virtual Environment
 ```bash
-# Create virtual environment
+git clone https://github.com/ranitadhikari2023/sentiment-pulse-app.git
+cd sentiment-pulse-app
+
+# Create and activate virtual environment
 python -m venv venv
 
-# Activate on Windows (PowerShell / CMD):
-venv\Scripts\activate
+# Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
 
-# Activate on macOS / Linux:
+# Linux / macOS:
 source venv/bin/activate
 ```
 
 ### 3. Install Dependencies
 ```bash
-pip install --upgrade pip
 pip install -r requirements.txt
-pip install -r requirements-train.txt
 ```
 
-### 4. Data Preparation & Model Training (Optional if model exists)
-To reproduce the dataset splits and retrain the model:
+### 4. Configure Environment
 ```bash
-# Prepare Yelp dataset into balanced splits in data/
-python prepare_data.py
-
-# Tune hyperparameters, calibrate model, evaluate on test set, and save artifacts
-python train_model.py
+cp .env.example .env
 ```
+*(Optionally adjust `DATABASE_URL` and `JWT_SECRET_KEY` in `.env`)*
 
-### 5. Run the Application
+### 5. Run Database Migrations
 ```bash
-uvicorn main:app --reload
+# Upgrade database to latest revision
+alembic upgrade head
 ```
 
-The application will start at **`http://127.0.0.1:8000`**.
+### 6. Start the Development Server
+```bash
+uvicorn main:app --reload --port 8000
+```
+Open **`http://127.0.0.1:8000`** in your browser.  
+Interactive OpenAPI documentation is available at **`http://127.0.0.1:8000/docs`**.
 
 ---
 
-## 🧪 Testing & Diagnostics
+## 🧪 Testing
 
-### Run Automated Unit and Integration Tests
+The repository includes a comprehensive 43-test automated suite covering authentication, authorization (IDOR), inference, database transactions, batch processing, CSV formula injection protection, health probes, and frontend static asset & template delivery.
+
 ```bash
-# Test the Machine Learning inference pipeline and probability calibration
-python -m unittest test_model.py
+# Run the full test suite with pytest
+pytest -v
 
-# Test the secured FastAPI REST endpoints, JWT flows, and health checks
-python -m unittest test_api.py
-```
-
-### Run Sanity & Stress Tests
-```bash
-# Diagnostic report on original 84 hand-written samples and linguistic edge cases
+# Run diagnostic script on hand-written sanity samples and linguistic stress tests
 python check_handwritten.py
 ```
 
 ---
 
-## 📚 API Endpoints
+## 📚 API Reference
 
-| Method | Endpoint | Description | Auth Required |
+### System & Health Probes
+| Method | Endpoint | Description | Auth |
 | :--- | :--- | :--- | :---: |
-| `GET` | `/` | Serves main Sentiment Pulse dashboard | Yes (Cookie / Redirect) |
-| `GET` | `/login` | Serves user sign-in interface | No |
-| `GET` | `/register` | Serves user registration interface | No |
-| `POST` | `/register` | Creates a new user profile | No |
-| `POST` | `/login` | Authenticates user & sets JWT cookie / token | No |
-| `POST` | `/logout` | Clears authentication cookie | No |
-| `GET` | `/me` | Returns current authenticated user metadata | Yes (JWT) |
-| `POST` | `/predict` | Analyzes sentiment for a single text payload | Yes (JWT / Cookie) |
-| `POST` | `/predict/batch` | Analyzes up to 50 text payloads in batch | Yes (JWT / Cookie) |
-| `GET` | `/health` | Returns service status and model metadata | No |
+| `GET` | `/health` | Service uptime, model metadata & inference benchmark | None |
+| `GET` | `/health/live` | Liveness probe for container orchestrators | None |
+| `GET` | `/health/ready` | Readiness probe verifying DB & ONNX availability | None |
+
+### Authentication
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :---: |
+| `POST` | `/register` | Register new user account (rate-limited) | None |
+| `POST` | `/login` | Authenticate and receive JWT & secure cookie | None |
+| `POST` | `/logout` | Invalidate cookie session | None |
+| `GET` | `/me` | Get profile for currently authenticated user | Bearer / Cookie |
+
+### Sentiment Predictions
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :---: |
+| `POST` | `/predict` | Real-time sentiment prediction for single string | Bearer / Cookie |
+| `POST` | `/predict/batch` | Batch prediction for up to 50 text items | Bearer / Cookie |
+
+### Customer Feedback Management
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :---: |
+| `POST` | `/feedback` | Submit feedback, analyze sentiment & persist record | Bearer / Cookie |
+| `GET` | `/feedback` | List paginated feedback with filtering & search | Bearer / Cookie |
+| `GET` | `/feedback/{id}` | Retrieve single authorized feedback record | Bearer / Cookie |
+| `DELETE` | `/feedback/{id}` | Delete authorized feedback record | Bearer / Cookie |
+| `GET` | `/feedback/stats` | Aggregate summary statistics | Bearer / Cookie |
+| `GET` | `/feedback/export` | Download CSV export with formula injection protection | Bearer / Cookie |
+
+### Batch Import & Business Intelligence
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :---: |
+| `POST` | `/feedback/import` | Upload CSV feedback file (bounded chunk processing) | Bearer / Cookie |
+| `GET` | `/feedback/import/{id}`| Poll status and progress of import job | Bearer / Cookie |
+| `GET` | `/feedback/analytics` | Retrieve sentiment distributions, daily trends & churn alerts | Bearer / Cookie |
+
+*(All endpoints are also available with `/api/` prefix for client compatibility)*
 
 ---
 
-## ☁️ Production Deployment (Render)
+## 🔒 Security Architecture
 
-1. Connect your repository to **Render**.
-2. Create a new **Web Service** using the repo.
-3. Configure settings:
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
-4. Optionally provision a **PostgreSQL** instance — the application detects `DATABASE_URL` automatically and switches from SQLite to PostgreSQL.
+1. **IDOR Prevention:** All feedback and job queries explicitly filter on `Feedback.user_id == current_user.id` or `ImportJob.user_id == current_user.id`.
+2. **CSV Formula Injection:** User-supplied strings starting with `=`, `+`, `-`, `@`, `\t`, or `\r` are sanitized by prepending a single quote (`'`) to protect spreadsheet users.
+3. **Rate Limiting:** IP-based sliding window rate limiter protects `/login` and `/register` endpoints against brute-force attacks.
+4. **Log Sanitization:** Sensitive credentials (`password`, `Bearer` tokens, `access_token` cookies) are automatically masked in log outputs.
+5. **CORS Security:** Configurable via `ALLOWED_ORIGINS` to avoid credential leakage across arbitrary domains.
+
+---
+
+## ☁️ Render Production Deployment
+
+The project includes a ready-to-deploy Infrastructure-as-Code blueprint in [`render.yaml`](./render.yaml).
+
+1. Connect your repository to [Render](https://render.com).
+2. Render provisions both the **Web Service** and managed **PostgreSQL Database** (`sentiment-pulse-db`).
+3. Build command:
+   ```bash
+   pip install -r requirements.txt && alembic upgrade head
+   ```
+4. Start command:
+   ```bash
+   uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1 --proxy-headers --forwarded-allow-ips '*'
+   ```
+5. Health Check Path: `/health/ready` (ensures traffic is only routed after DB connection and model warmup).
 
 ---
 

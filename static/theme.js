@@ -18,6 +18,7 @@ function toggleTheme() {
 
   localStorage.setItem('theme', nextTheme);
   syncThemeToggleIcons(nextTheme === 'dark');
+  window.dispatchEvent(new CustomEvent('theme-changed', { detail: { isDark: nextTheme === 'dark', theme: nextTheme } }));
 }
 
 // Synchronize any theme toggle buttons on the page with current theme state
@@ -56,6 +57,7 @@ if (window.matchMedia) {
         document.documentElement.classList.remove('dark');
       }
       syncThemeToggleIcons(e.matches);
+      window.dispatchEvent(new CustomEvent('theme-changed', { detail: { isDark: e.matches } }));
     }
   });
 }
@@ -77,6 +79,11 @@ function initThemeUI() {
 // Expose on window for manual invocations
 window.toggleTheme = toggleTheme;
 window.initThemeUI = initThemeUI;
+window.themeManager = {
+  toggle: toggleTheme,
+  init: initThemeUI,
+  isDark: () => document.documentElement.classList.contains('dark')
+};
 
 // Handle both uncompleted and already-completed DOM ready states
 if (document.readyState === 'loading') {

@@ -1,10 +1,35 @@
 services:
   - type: web
-    name: sentiment-analysis-app
+    name: sentiment-pulse-app
     env: python
     plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "pip install -r requirements.txt && alembic upgrade head"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1 --proxy-headers --forwarded-allow-ips '*'"
+    healthCheckPath: /health/ready
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.13
+      - key: ENVIRONMENT
+        value: production
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sentiment-pulse-db
+          property: connectionString
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: "lax"
+      - key: ALLOWED_ORIGINS
+        value: "https://sentiment-pulse-app.onrender.com"
+      - key: RATE_LIMIT_LOGIN_MAX
+        value: "15"
+      - key: RATE_LIMIT_REGISTER_MAX
+        value: "10"
+
+databases:
+  - name: sentiment-pulse-db
+    plan: free
+    databaseName: sentiment_pulse
+    user: sentiment_admin
