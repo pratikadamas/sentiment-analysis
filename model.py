@@ -144,11 +144,14 @@ class SentimentAnalyzer:
         top_sentiment = max(scores_map.items(), key=lambda x: x[1])
 
         # Guardrails:
-        # 1. Low confidence (< 0.45)
-        # 2. Linguistic gibberish check (handles WordPiece ## subword inflation)
+        # 1. Obvious gibberish or unconfident (< 0.35) -> unknown
+        # 2. Ambiguous/flat polarity on valid English text (< 0.445) -> default neutral
+        # 3. Otherwise -> top scoring sentiment
         is_gib = _is_gibberish(cleaned_text, encoding.tokens)
-        if top_sentiment[1] < 0.45 or is_gib:
+        if is_gib or top_sentiment[1] < 0.35:
             sentiment_label = "unknown"
+        elif top_sentiment[1] < 0.445:
+            sentiment_label = "neutral"
         else:
             sentiment_label = top_sentiment[0]
 

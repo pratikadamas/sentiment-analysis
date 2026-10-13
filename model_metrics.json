@@ -1,51 +1,30 @@
 {
   "dataset_name": "yelp_review_full",
-  "train_size": 60000,
-  "val_size": 7500,
-  "test_size": 3000,
-  "dataset_sizes": {
-    "train": 60000,
-    "val": 7500,
-    "test": 3000
-  },
-  "label_mapping": {
-    "0, 1": "negative",
-    "2": "neutral",
-    "3, 4": "positive"
-  },
   "model_architecture": {
     "base_model": "distilbert-base-uncased",
     "framework": "ONNX Runtime (CPUExecutionProvider)",
     "quantization": "Dynamic INT8 (onnxruntime.quantization.QuantType.QInt8)",
     "tokenizer": "HuggingFace Tokenizers (pure Rust/C++, zero PyTorch runtime)",
     "model_size_mb": 64.27,
-    "max_sequence_length": 96
+    "max_sequence_length": 256
   },
-  "chosen_hyperparameters": {
-    "architecture": "DistilBertForSequenceClassification",
-    "quantization": "Dynamic INT8",
-    "batch_size": 16,
-    "learning_rate": 2e-05,
-    "max_length": 96
-  },
-  "test_macro_f1": 0.6662,
-  "accuracy": 0.6677,
+  "test_macro_f1": 0.7858,
+  "accuracy": 0.7851,
   "per_class_f1": {
-    "negative": 0.7311,
-    "neutral": 0.5449,
-    "positive": 0.7225
+    "negative": 0.8246,
+    "neutral": 0.6964,
+    "positive": 0.8363
   },
   "per_class_precision": {
-    "negative": 0.7371,
-    "neutral": 0.5667,
-    "positive": 0.692
+    "negative": 0.8384,
+    "neutral": 0.6852,
+    "positive": 0.8367
   },
   "per_class_recall": {
-    "negative": 0.7253,
-    "neutral": 0.5247,
-    "positive": 0.7558
+    "negative": 0.8112,
+    "neutral": 0.708,
+    "positive": 0.836
   },
-  "evaluation_date": "2026-10-12T22:29:06.377957+00:00",
-  "training_date": "2026-10-12T22:29:06.377957+00:00",
+  "training_date": "2026-10-13",
   "version": "3.0.0"
 }

@@ -233,10 +233,9 @@ async def predict_sentiment(
     try:
         analyzer: SentimentAnalyzer = app.state.analyzer
         result = analyzer.predict(payload.text)
-        sentiment = "unknown" if result["confidence"] < 0.45 else result["sentiment"]
         return SentimentResponse(
             text=result["text"],
-            sentiment=sentiment,
+            sentiment=result["sentiment"],
             confidence=result["confidence"],
             scores=result["scores"]
         )
@@ -268,10 +267,9 @@ async def predict_batch_sentiment(
     for item in payload.texts:
         try:
             res = analyzer.predict(item)
-            sentiment = "unknown" if res["confidence"] < 0.45 else res["sentiment"]
             results.append(SentimentResponse(
                 text=res["text"],
-                sentiment=sentiment,
+                sentiment=res["sentiment"],
                 confidence=res["confidence"],
                 scores=res["scores"]
             ))
