@@ -28,15 +28,18 @@ class User(Base):
     email = Column(String(120), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    email_verified = Column(Boolean, default=False, nullable=False)
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 
     # Relationships
     feedback = relationship("Feedback", back_populates="owner", cascade="all, delete-orphan")
     import_jobs = relationship("ImportJob", back_populates="owner", cascade="all, delete-orphan")
+    verification_tokens = relationship("EmailVerificationToken", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<User(id={self.id}, username='{self.username}', email='{self.email}')>"
+        return f"<User(id={self.id}, username='{self.username}', email='{self.email}', verified={self.email_verified})>"
 
 
 class Feedback(Base):
@@ -114,3 +117,24 @@ class ImportJob(Base):
 
     def __repr__(self):
         return f"<ImportJob(id='{self.id}', status='{self.status}', progress={self.processed_rows}/{self.total_rows})>"
+
+
+class EmailVerificationToken(Base):
+    """
+    Stores cryptographically secure, single-use, expiring email verification tokens.
+    Raw tokens are NEVER stored in plaintext; only their SHA-256 hashes are persisted.
+    """
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    # Relationship to user
+    user = relationship("User", back_populates="verification_tokens")
+
+    def __repr__(self):
+        return f"<EmailVerificationToken(id={self.id}, user_id={self.user_id}, used={self.used_at is not None})>"

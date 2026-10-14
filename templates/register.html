@@ -218,6 +218,46 @@
           </div>
         </form>
 
+        <!-- Verification Pending Card (Shown upon successful account creation) -->
+        <div id="verification-pending-card" class="hidden text-center py-4 space-y-6">
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center ring-8 ring-indigo-500/5">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+          </div>
+
+          <div>
+            <h2 class="text-xl font-bold font-display text-slate-900 dark:text-white">Check your email</h2>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              We sent a verification link to:
+            </p>
+            <p id="registered-email-display" class="mt-1 text-sm font-semibold text-brand-600 dark:text-brand-400 break-all"></p>
+            <p class="mt-3 text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
+              Please click the link in your email to verify your account and activate your SentimentPulse access before signing in. The link expires in 30 minutes.
+            </p>
+          </div>
+
+          <div class="space-y-3 pt-2">
+            <button 
+              type="button" 
+              id="resend-verification-btn"
+              class="w-full flex items-center justify-center py-3 px-4 rounded-xl text-sm font-semibold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 hover:bg-brand-100 dark:hover:bg-brand-900/50 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg id="resend-spinner" class="hidden animate-spin -ml-1 mr-2.5 h-4 w-4 text-brand-600 dark:text-brand-400" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span id="resend-btn-text">Resend verification email</span>
+            </button>
+            <a 
+              href="/login" 
+              class="block w-full py-3 px-4 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-center"
+            >
+              Back to sign in
+            </a>
+          </div>
+        </div>
+
         <!-- Back to App Link -->
         <div class="mt-6 text-center border-t border-slate-200 dark:border-slate-800/80 pt-4">
           <a href="/" class="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors inline-flex items-center space-x-1">
@@ -408,36 +448,66 @@
           return;
         }
 
-        showAlert('Account created successfully! Logging you in...', 'success');
+        showAlert('Account created! Please check your email and click the verification link before signing in.', 'success');
 
-        // Step 2: Auto-login to obtain session cookie seamlessly
-        try {
-          const loginRes = await fetch('/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-          });
-
-          if (loginRes.ok) {
-            setTimeout(() => {
-              window.location.href = '/';
-            }, 500);
-            return;
-          }
-        } catch (loginErr) {
-          // Fallback to login redirect
-        }
-
-        // If auto-login didn't complete, redirect to login page with prefilled param
-        setTimeout(() => {
-          window.location.href = `/login?registered=true&username=${encodeURIComponent(username)}`;
-        }, 700);
+        // Transition from form to verification instructions screen
+        form.classList.add('hidden');
+        const pendingCard = document.getElementById('verification-pending-card');
+        const emailDisplay = document.getElementById('registered-email-display');
+        emailDisplay.textContent = email;
+        pendingCard.classList.remove('hidden');
+        setLoading(false);
 
       } catch (err) {
         showAlert('Network error: Unable to connect to the server. Please check your internet connection.');
         setLoading(false);
       }
     });
+
+    // Resend Verification Email Handler
+    const resendBtn = document.getElementById('resend-verification-btn');
+    const resendSpinner = document.getElementById('resend-spinner');
+    const resendBtnText = document.getElementById('resend-btn-text');
+
+    if (resendBtn) {
+      resendBtn.addEventListener('click', async () => {
+        const email = emailInput.value.trim();
+        if (!email) {
+          showAlert('Please enter an email address to resend the verification link.', 'error');
+          return;
+        }
+
+        resendBtn.disabled = true;
+        resendSpinner.classList.remove('hidden');
+        resendBtnText.textContent = 'Sending...';
+
+        try {
+          const res = await fetch('/auth/resend-verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+          const data = await res.json().catch(() => ({}));
+          showAlert(data.message || 'If an account exists with that email address, a verification email has been sent.', 'success');
+        } catch (err) {
+          showAlert('Network error: Unable to resend verification email. Please try again.', 'error');
+        } finally {
+          resendSpinner.classList.add('hidden');
+          let cooldown = 30;
+          resendBtnText.textContent = `Resend in ${cooldown}s`;
+          const timer = setInterval(() => {
+            cooldown--;
+            if (cooldown <= 0) {
+              clearInterval(timer);
+              resendBtn.disabled = false;
+              resendBtnText.textContent = 'Resend verification email';
+            } else {
+              resendBtnText.textContent = `Resend in ${cooldown}s`;
+            }
+          }, 1000);
+        }
+      });
+    }
   </script>
 </body>
 </html>

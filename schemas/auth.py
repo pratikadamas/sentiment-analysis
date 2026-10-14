@@ -3,6 +3,8 @@ Authentication schemas for request validation and response serialization.
 """
 
 import re
+from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 
 
@@ -38,3 +40,25 @@ class UserResponse(BaseModel):
     id: int
     username: str
     email: str
+    email_verified: bool = False
+    email_verified_at: Optional[datetime] = None
+
+
+class RegisterResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    message: str
+    id: int
+    username: str
+    email: str
+    email_verified: bool = False
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr = Field(..., description="Email address to receive new verification link")
+
+
+class GenericMessageResponse(BaseModel):
+    message: str
+    detail: Optional[str] = None
+

@@ -56,11 +56,17 @@ def test_authenticated_root_renders_saas_shell(client):
     import time
     username = f"front_user_{int(time.time() * 1000)}"
     # Register and login a test user
+    test_email = f"{username}@example.com"
     client.post("/register", json={
         "username": username,
-        "email": f"{username}@example.com",
+        "email": test_email,
         "password": "SecretPassword123"
     })
+    from services.email_service import email_service
+    token = email_service.get_last_sent_token_for(test_email)
+    if token:
+        client.get(f"/auth/verify-email?token={token}", follow_redirects=False)
+
     login_resp = client.post("/login", json={
         "username": username,
         "password": "SecretPassword123"

@@ -75,26 +75,45 @@ def _migrate_schema() -> None:
                     if is_pg:
                         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()"))
                     else:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"))
+                        conn.execute(text("ALTER TABLE users ADD COLUMN created_at TIMESTAMP"))
 
                 if "updated_at" not in existing_cols:
                     logger.info("Migrating 'users': adding column 'updated_at'...")
                     if is_pg:
                         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()"))
                     else:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"))
+                        conn.execute(text("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP"))
+
+                if "email_verified" not in existing_cols:
+                    logger.info("Migrating 'users': adding column 'email_verified' (defaulting existing accounts to verified)...")
+                    if is_pg:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT TRUE"))
+                    else:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT 1"))
+
+                if "email_verified_at" not in existing_cols:
+                    logger.info("Migrating 'users': adding column 'email_verified_at'...")
+                    if is_pg:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP WITH TIME ZONE"))
+                    else:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN email_verified_at TIMESTAMP"))
+
+        # Create email_verification_tokens table if missing
+        if "email_verification_tokens" not in tables:
+            logger.info("Migrating schema: creating 'email_verification_tokens' table...")
+            Base.metadata.tables["email_verification_tokens"].create(bind=engine, checkfirst=True)
 
         # Synchronize Alembic migration state if alembic is present
         if "alembic_version" in tables:
             with engine.begin() as conn:
                 res = conn.execute(text("SELECT version_num FROM alembic_version")).fetchone()
                 if not res:
-                    conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('992b8e22d756')"))
+                    conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('b5f1a9238de4')"))
         else:
             try:
                 with engine.begin() as conn:
                     conn.execute(text("CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)"))
-                    conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('992b8e22d756')"))
+                    conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('b5f1a9238de4')"))
             except Exception as alembic_err:
                 logger.debug(f"Alembic version table initialization skipped: {alembic_err}")
 

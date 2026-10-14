@@ -18,7 +18,15 @@ from core.security import (
     COOKIE_SECURE,
     COOKIE_SAMESITE,
 )
-from schemas.auth import UserRegister, UserLogin, TokenResponse, UserResponse
+from schemas.auth import (
+    UserRegister,
+    UserLogin,
+    TokenResponse,
+    UserResponse,
+    RegisterResponse,
+    ResendVerificationRequest,
+    GenericMessageResponse,
+)
 
 __all__ = [
     "router",
@@ -31,6 +39,9 @@ __all__ = [
     "UserLogin",
     "TokenResponse",
     "UserResponse",
+    "RegisterResponse",
+    "ResendVerificationRequest",
+    "GenericMessageResponse",
     "pwd_context",
     "security_bearer",
     "SECRET_KEY",

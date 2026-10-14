@@ -93,7 +93,45 @@
         <!-- Flash Alert Message -->
         <div id="alert-banner" role="alert" aria-live="polite" class="hidden mb-6 p-4 rounded-xl text-sm border flex items-start space-x-3 transition-all duration-300">
           <svg id="alert-icon" class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"></svg>
-          <span id="alert-text" class="flex-1 font-medium"></span>
+          <div class="flex-1">
+            <span id="alert-text" class="font-medium"></span>
+            <div id="alert-action-container" class="mt-2 hidden">
+              <button
+                type="button"
+                id="alert-resend-btn"
+                class="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+              >
+                Resend verification email &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resend Verification Card (Expandable) -->
+        <div id="resend-box" class="hidden mb-6 p-4 rounded-xl bg-indigo-500/10 border border-brand-500/30 text-slate-800 dark:text-slate-200 text-sm transition-all duration-300">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">Resend Verification</span>
+            <button type="button" id="close-resend-box" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold">&times;</button>
+          </div>
+          <p class="text-xs text-slate-600 dark:text-slate-400 mb-2.5">
+            Enter the email address you registered with:
+          </p>
+          <div class="flex space-x-2">
+            <input
+              id="resend-email-input"
+              type="email"
+              placeholder="name@example.com"
+              class="flex-1 px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+            <button
+              id="btn-send-resend"
+              type="button"
+              class="px-3.5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-sm focus:outline-none transition-colors disabled:opacity-50"
+            >
+              Send Link
+            </button>
+          </div>
+          <p id="resend-status-msg" class="mt-2 text-xs font-medium hidden"></p>
         </div>
 
         <form id="login-form" class="space-y-5" novalidate>
@@ -172,6 +210,17 @@
           </div>
         </form>
 
+        <!-- Resend Link Trigger -->
+        <div class="mt-4 text-center">
+          <button
+            type="button"
+            id="open-resend-btn"
+            class="text-xs text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 transition-colors focus:outline-none underline decoration-slate-400/50 hover:decoration-brand-500"
+          >
+            Didn't receive verification email? Resend link
+          </button>
+        </div>
+
         <!-- Back to App Link -->
         <div class="mt-6 text-center border-t border-slate-200 dark:border-slate-800/80 pt-4">
           <a href="/" class="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors inline-flex items-center space-x-1">
@@ -207,14 +256,29 @@
       });
     }
 
-    // Check for registration success param in URL
+    // Check for URL query params (verified, reason, registered)
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('registered') === 'true') {
-      showAlert('Account created successfully! Please sign in with your credentials.', 'success');
+    const verifiedParam = urlParams.get('verified');
+    const reasonParam = urlParams.get('reason');
+
+    if (verifiedParam === 'true') {
+      showAlert('Email verified successfully. You can now sign in.', 'success');
+    } else if (verifiedParam === 'false') {
+      let failMsg = 'Verification link is invalid or expired. Request a new verification email below.';
+      if (reasonParam === 'expired') {
+        failMsg = 'Your email verification link has expired. Please request a new link below.';
+      } else if (reasonParam === 'used') {
+        failMsg = 'This verification link has already been used. Please sign in with your credentials.';
+      } else if (reasonParam === 'invalid') {
+        failMsg = 'Invalid verification link. Please request a new verification email below.';
+      }
+      showAlert(failMsg, 'error');
+      openResendBox();
+    } else if (urlParams.get('registered') === 'true') {
+      showAlert('Account created! Please check your email and click the verification link before signing in.', 'success');
       const registeredUsername = urlParams.get('username');
       if (registeredUsername) {
         usernameInput.value = registeredUsername;
-        passwordInput.focus();
       }
     }
 
@@ -226,7 +290,10 @@
     });
 
     // Alert helper
-    function showAlert(message, type = 'error') {
+    const alertActionContainer = document.getElementById('alert-action-container');
+    const alertResendBtn = document.getElementById('alert-resend-btn');
+
+    function showAlert(message, type = 'error', showResendAction = false) {
       alertBanner.classList.remove('hidden', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-600', 'dark:text-rose-400', 'bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-700', 'dark:text-emerald-400');
       
       if (type === 'error') {
@@ -238,18 +305,86 @@
       }
 
       alertText.textContent = message;
+      if (showResendAction && alertActionContainer) {
+        alertActionContainer.classList.remove('hidden');
+      } else if (alertActionContainer) {
+        alertActionContainer.classList.add('hidden');
+      }
     }
 
     function hideAlert() {
       alertBanner.classList.add('hidden');
+      if (alertActionContainer) alertActionContainer.classList.add('hidden');
+    }
+
+    // Resend Box elements & handlers
+    const resendBox = document.getElementById('resend-box');
+    const openResendBtn = document.getElementById('open-resend-btn');
+    const closeResendBox = document.getElementById('close-resend-box');
+    const resendEmailInput = document.getElementById('resend-email-input');
+    const btnSendResend = document.getElementById('btn-send-resend');
+    const resendStatusMsg = document.getElementById('resend-status-msg');
+
+    function openResendBox() {
+      if (resendBox) {
+        resendBox.classList.remove('hidden');
+        const typed = usernameInput.value.trim();
+        if (typed.includes('@') && !resendEmailInput.value) {
+          resendEmailInput.value = typed;
+        }
+        resendEmailInput.focus();
+      }
+    }
+
+    if (openResendBtn) {
+      openResendBtn.addEventListener('click', openResendBox);
+    }
+    if (closeResendBox) {
+      closeResendBox.addEventListener('click', () => {
+        resendBox.classList.add('hidden');
+      });
+    }
+    if (alertResendBtn) {
+      alertResendBtn.addEventListener('click', openResendBox);
+    }
+
+    if (btnSendResend) {
+      btnSendResend.addEventListener('click', async () => {
+        const email = resendEmailInput.value.trim();
+        if (!email) {
+          resendStatusMsg.textContent = 'Please enter your email address.';
+          resendStatusMsg.className = 'mt-2 text-xs font-medium text-rose-500 block';
+          return;
+        }
+
+        btnSendResend.disabled = true;
+        btnSendResend.textContent = 'Sending...';
+
+        try {
+          const res = await fetch('/auth/resend-verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+          const data = await res.json().catch(() => ({}));
+          resendStatusMsg.textContent = data.message || 'If an account exists with that email, a verification link has been sent.';
+          resendStatusMsg.className = 'mt-2 text-xs font-medium text-emerald-500 block';
+        } catch (e) {
+          resendStatusMsg.textContent = 'Network error: could not send verification email.';
+          resendStatusMsg.className = 'mt-2 text-xs font-medium text-rose-500 block';
+        } finally {
+          btnSendResend.disabled = false;
+          btnSendResend.textContent = 'Send Link';
+        }
+      });
     }
 
     function parseLoginErrorMessage(response, data) {
-      if (data && Array.isArray(data.detail)) {
-        return data.detail.map(e => e.msg).join('. ');
-      }
       if (data && typeof data.detail === 'string' && data.detail.trim()) {
         return data.detail;
+      }
+      if (data && Array.isArray(data.detail)) {
+        return data.detail.map(e => e.msg).join('. ');
       }
       if (data && typeof data.message === 'string' && data.message.trim()) {
         return data.message;
@@ -257,6 +392,8 @@
       switch (response.status) {
         case 401:
           return 'Incorrect username or password. Please verify your credentials.';
+        case 403:
+          return 'Please verify your email address before signing in.';
         case 422:
           return 'Please provide both your username and password.';
         case 429:
@@ -319,7 +456,11 @@
 
         if (!response.ok) {
           const errorMsg = parseLoginErrorMessage(response, data);
-          showAlert(errorMsg, 'error');
+          const isUnverified = response.status === 403 && (errorMsg.includes('verify your email') || errorMsg.includes('verification'));
+          showAlert(errorMsg, 'error', isUnverified);
+          if (isUnverified) {
+            openResendBox();
+          }
           setLoading(false);
           return;
         }

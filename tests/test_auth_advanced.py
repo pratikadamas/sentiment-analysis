@@ -99,21 +99,44 @@ def test_valid_user_registration_and_db_storage(client):
 
     # 2. Verify user in database
     from db.session import SessionLocal
-    from db.models import User
+    from db.models import User, EmailVerificationToken
     from core.security import verify_password
+    from services.email_service import email_service
 
     with SessionLocal() as db:
         user = db.query(User).filter(User.username == unique_user).first()
         assert user is not None
         assert user.email == f"{unique_user}@example.com"
         assert user.is_active is True
+        assert user.email_verified is False
+        assert user.email_verified_at is None
         assert user.created_at is not None
         # Verify password is NOT plaintext and verifies against bcrypt
         assert user.hashed_password != raw_password
         assert user.hashed_password.startswith("$2b$")
         assert verify_password(raw_password, user.hashed_password) is True
 
-    # 3. Newly registered user can log in with registered credentials
+        # Verify verification token was stored as a SHA-256 hash (64 hex chars), NOT plaintext
+        tok = db.query(EmailVerificationToken).filter(EmailVerificationToken.user_id == user.id).first()
+        assert tok is not None
+        assert len(tok.token_hash) == 64
+        assert tok.used_at is None
+
+    # 3. Unverified user CANNOT log in (rejected with 403 Forbidden)
+    unverified_login = client.post("/login", json={
+        "username": unique_user,
+        "password": raw_password
+    })
+    assert unverified_login.status_code == 403
+    assert "verify your email" in unverified_login.json()["detail"].lower()
+
+    # 4. Verify email via link
+    raw_token = email_service.get_last_sent_token_for(f"{unique_user}@example.com")
+    assert raw_token is not None
+    verify_res = client.get(f"/auth/verify-email?token={raw_token}", follow_redirects=False)
+    assert verify_res.status_code in (200, 302)
+
+    # 5. Verified user can now log in successfully
     login_res = client.post("/login", json={
         "username": unique_user,
         "password": raw_password
@@ -220,6 +243,11 @@ def test_legacy_schema_migration_heals_missing_columns(tmp_path):
         assert "is_active" in cols_after
         assert "created_at" in cols_after
         assert "updated_at" in cols_after
+        assert "email_verified" in cols_after
+        assert "email_verified_at" in cols_after
+
+        tables_after = insp_after.get_table_names()
+        assert "email_verification_tokens" in tables_after
 
         # Verify SQLAlchemy User ORM can now query without OperationalError
         TestSession = sessionmaker(bind=test_engine)

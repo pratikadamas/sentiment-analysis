@@ -28,6 +28,13 @@ class TestFastAPIBackend(unittest.TestCase):
         })
         assert reg_res.status_code == 201, f"Failed setup register: {reg_res.text}"
 
+        # Verify email via token
+        from services.email_service import email_service
+        token = email_service.get_last_sent_token_for(cls.email)
+        assert token is not None, "Verification email was not generated"
+        verify_res = cls.client.get(f"/auth/verify-email?token={token}", follow_redirects=False)
+        assert verify_res.status_code in (200, 302), f"Verification failed: {verify_res.text}"
+
         # Login to obtain token
         login_res = cls.client.post("/login", json={
             "username": cls.username,

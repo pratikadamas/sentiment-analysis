@@ -65,6 +65,23 @@ class Settings:
     RATE_LIMIT_LOGIN_WINDOW_SECONDS: int = int(os.getenv("RATE_LIMIT_LOGIN_WINDOW_SECONDS", "60"))
     RATE_LIMIT_REGISTER_MAX: int = int(os.getenv("RATE_LIMIT_REGISTER_MAX", "100"))
     RATE_LIMIT_REGISTER_WINDOW_SECONDS: int = int(os.getenv("RATE_LIMIT_REGISTER_WINDOW_SECONDS", "60"))
+    RATE_LIMIT_RESEND_MAX: int = int(os.getenv("RATE_LIMIT_RESEND_MAX", "5"))
+    RATE_LIMIT_RESEND_WINDOW_SECONDS: int = int(os.getenv("RATE_LIMIT_RESEND_WINDOW_SECONDS", "60"))
+
+    # Email & SMTP Delivery Configuration
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USERNAME: str = os.getenv("SMTP_USERNAME", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "true").lower() in ("true", "1")
+    SMTP_USE_SSL: bool = os.getenv("SMTP_USE_SSL", "false").lower() in ("true", "1")
+    SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "noreply@sentimentpulse.com")
+    SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "SentimentPulse")
+    EMAIL_VERIFICATION_EXPIRE_MINUTES: int = int(os.getenv("EMAIL_VERIFICATION_EXPIRE_MINUTES", "30"))
+    APP_BASE_URL: str = os.getenv(
+        "APP_BASE_URL",
+        "https://sentiment-pulse-app.onrender.com" if os.getenv("ENVIRONMENT") == "production" else "http://localhost:8000"
+    )
 
     # Batch & CSV Import Limits
     MAX_BATCH_SIZE: int = int(os.getenv("MAX_BATCH_SIZE", "50"))

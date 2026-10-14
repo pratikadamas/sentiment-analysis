@@ -17,12 +17,19 @@ def client():
 
 def register_and_login(client, username_prefix: str):
     unique = f"{username_prefix}_{int(time.time() * 1000)}"
+    email = f"{unique}@example.com"
     reg_res = client.post("/register", json={
         "username": unique,
-        "email": f"{unique}@example.com",
+        "email": email,
         "password": "ValidPassword123"
     })
     assert reg_res.status_code == 201
+
+    from services.email_service import email_service
+    raw_token = email_service.get_last_sent_token_for(email)
+    if raw_token:
+        verify_res = client.get(f"/auth/verify-email?token={raw_token}", follow_redirects=False)
+        assert verify_res.status_code in (200, 302)
 
     login_res = client.post("/login", json={
         "username": unique,
