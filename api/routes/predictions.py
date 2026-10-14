@@ -1,12 +1,11 @@
 """
 Inference prediction endpoints for single-string and batch sentiment analysis.
+No authentication required.
 """
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 
-from db.models import User
-from api.routes.auth import get_current_user
 from services.sentiment_service import sentiment_service
 from schemas.prediction import (
     SentimentRequest,
@@ -24,12 +23,9 @@ router = APIRouter(tags=["Inference"])
 
 @router.post("/predict", response_model=SentimentResponse)
 @router.post("/api/predict", response_model=SentimentResponse)
-async def predict_sentiment(
-    payload: SentimentRequest,
-    current_user: User = Depends(get_current_user)
-):
+async def predict_sentiment(payload: SentimentRequest):
     """
-    Analyzes the sentiment of a single input string. Requires valid authentication.
+    Analyzes the sentiment of a single input string.
     Returns predicted class (positive, neutral, negative, unknown), confidence, and score breakdown.
     """
     try:
@@ -55,10 +51,7 @@ async def predict_sentiment(
 
 @router.post("/predict/batch", response_model=BatchSentimentResponse)
 @router.post("/api/predict/batch", response_model=BatchSentimentResponse)
-async def predict_batch_sentiment(
-    payload: BatchSentimentRequest,
-    current_user: User = Depends(get_current_user)
-):
+async def predict_batch_sentiment(payload: BatchSentimentRequest):
     """
     Analyzes sentiment for a batch of text strings (up to 50 items).
     Provides structured per-item error reporting for partial failures without exposing stack traces.

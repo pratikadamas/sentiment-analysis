@@ -1,7 +1,7 @@
 /**
  * Sentiment Pulse - Analyze Feedback Controller (analyze.js)
  * Executes inference on single customer reviews and optionally persists them directly
- * to the authenticated user's feedback database via POST /feedback.
+ * to the customer feedback database via POST /feedback.
  */
 
 const AnalyzeController = {

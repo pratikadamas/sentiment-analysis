@@ -9,7 +9,7 @@
 [![Render](https://img.shields.io/badge/Deploy-Render-46E3B7.svg?style=flat&logo=render&logoColor=white)](https://render.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Sentiment Pulse** is a production-grade customer feedback intelligence platform built on **FastAPI**, **PostgreSQL / SQLite**, **SQLAlchemy 2.0**, **Alembic**, and **ONNX Runtime (INT8 Quantized Transformer)**. It enables businesses to ingest customer reviews via API or bulk CSV, classify sentiment with sub-25ms latency, monitor customer experience trends, and proactively detect churn risks with multi-tenant data isolation.
+**Sentiment Pulse** is a production-grade customer feedback intelligence platform built on **FastAPI**, **PostgreSQL / SQLite**, **SQLAlchemy 2.0**, **Alembic**, and **ONNX Runtime (INT8 Quantized Transformer)**. It enables teams to ingest customer reviews via API or bulk CSV, classify sentiment with sub-25ms latency, monitor customer experience trends, and proactively detect churn risks with persistent storage and interactive dashboards.
 
 ---
 
@@ -17,11 +17,11 @@
 
 * **⚡ Ultra-Fast ONNX Transformer Inference:** Powered by an INT8 dynamically quantized transformer (`sentiment_model.onnx`, 67.4MB) and Hugging Face tokenizer (`tokenizer.json`). Runs on CPU with **sub-25ms latency**, lightweight memory footprint (<90MB RAM), and zero PyTorch production dependencies.
 * **💾 Enterprise Database & Schema Migrations:** Multi-dialect SQLAlchemy 2.0 engine supporting local SQLite and managed PostgreSQL on Render via `psycopg` (Psycopg 3). Full schema evolution managed with **Alembic migrations** (no unsafe `create_all()` in production).
-* **🔐 Hardened Authentication & Security:** Bcrypt password hashing, JWT signing (HS256) with expiration, HTTP-only `SameSite=Lax` Secure cookie session management, client IP rate-limiting, and strict **IDOR protection** scoping all operations to authenticated tenants.
 * **📋 Persistent Customer Feedback API:** Full CRUD lifecycle for customer feedback records including category tagging, source channel attributes, customer ratings (1–5), and persisted probability score distributions.
 * **📊 Business Intelligence & Sentiment Trends:** Server-side SQL aggregations providing volume metrics, sentiment percentages, temporal trends grouped by day, category breakdown, and proactive highlighting of recent negative feedback.
 * **📦 Bounded CSV Batch Ingestion & Secure Export:** Upload CSV reviews up to 5,000 rows in bounded streaming chunks with progress tracking (`ImportJob`), encoding autodetection, and **CSV Formula Injection Sanitization** (`=`, `+`, `-`, `@`) on export.
-* **🔭 Production Observability:** Request correlation IDs (`X-Request-ID`), execution latency metrics (`X-Process-Time`), structured logging with credential masking, separated liveness (`/health/live`) and readiness (`/health/ready`) probes.
+* **🔭 Production Observability & Rate Limiting:** Request correlation IDs (`X-Request-ID`), execution latency metrics (`X-Process-Time`), sliding-window IP rate limiting, structured logging, separated liveness (`/health/live`) and readiness (`/health/ready`) probes.
+* **🎨 Modern SaaS Web Dashboard:** Single-page application interface opening directly to feedback analytics, real-time single and batch prediction playgrounds, paginated feedback explorer, and CSV import/export.
 
 ---
 
@@ -29,22 +29,20 @@
 
 ```text
 ├── main.py                         # ASGI entry point, lifespan, CORS, middleware assembly
-├── auth.py                         # Backward-compatible authentication facade
 ├── database.py                     # Backward-compatible database facade
 ├── model.py                        # Core ONNX SentimentAnalyzer singleton engine
 ├── core/
 │   ├── config.py                   # Centralized Pydantic Settings & environment validation
-│   ├── logging.py                  # Structured logging & credential sanitization
+│   ├── logging.py                  # Structured logging & request context formatting
 │   ├── middleware.py               # X-Request-ID & X-Process-Time middleware
-│   └── security.py                 # Bcrypt hashing, JWT generation, rate limiting
+│   └── security.py                 # Sliding-window IP rate limiting utilities
 ├── db/
 │   ├── session.py                  # SQLAlchemy engine, connection pooling & get_db dependency
-│   └── models.py                   # ORM models (User, Feedback, ImportJob)
+│   └── models.py                   # ORM models (Feedback, ImportJob)
 ├── alembic/                        # Alembic migration environment
 │   ├── env.py                      # Dynamic database URL & batch migration configuration
 │   └── versions/                   # Versioned migration scripts
 ├── schemas/                        # Pydantic v2 validation contracts
-│   ├── auth.py                     # User registration & token schemas
 │   ├── prediction.py               # Inference request & response schemas
 │   ├── feedback.py                 # Feedback CRUD, filtering & stats schemas
 │   ├── import_job.py               # Import job tracking schemas
@@ -52,21 +50,18 @@
 │   └── health.py                   # Health, liveness & readiness schemas
 ├── services/
 │   ├── sentiment_service.py        # Inference lifecycle & latency benchmarking
-│   ├── feedback_service.py         # Feedback CRUD, pagination & ownership enforcement
+│   ├── feedback_service.py         # Feedback CRUD, pagination & persistence
 │   ├── analytics_service.py        # SQL aggregations & negative feedback tracking
 │   └── import_service.py           # Chunked CSV ingestion & formula-safe exports
 ├── api/
 │   └── routes/
-│       ├── auth.py                 # /register, /login, /logout, /me
 │       ├── predictions.py          # /predict, /predict/batch
 │       ├── feedback.py             # /feedback, /feedback/{id}, /feedback/stats, /feedback/export
 │       ├── imports.py              # /feedback/import, /feedback/import/{job_id}
 │       ├── analytics.py            # /feedback/analytics
 │       └── health.py               # /health, /health/live, /health/ready
 ├── templates/                      # Frontend HTML templates
-│   ├── index.html                  # Main SaaS dashboard shell (Overview, Analyze, Explorer, Analytics, Imports)
-│   ├── login.html                  # Accessible sign-in page with theme toggle
-│   └── register.html               # User registration page with client-side validation
+│   └── index.html                  # Main SaaS dashboard shell (Overview, Analyze, Explorer, Analytics, Imports)
 ├── static/                         # Static assets & modular JavaScript
 │   ├── css/
 │   │   └── app.css                 # SaaS design tokens, card styles, badges, focus rings, toast animations
@@ -79,7 +74,7 @@
 │   │   ├── imports.js              # Drag-and-drop CSV batch import & export controller
 │   │   └── app.js                  # Shell routing, navigation, modals & toast notification manager
 │   └── theme.js                    # Zero-FOUC light/dark theme persistence controller
-├── tests/                          # Automated integration, security & frontend test suites
+├── tests/                          # Automated integration, reliability & frontend test suites
 ├── render.yaml                     # Infrastructure-as-Code deployment blueprint
 ├── requirements.txt                # Production backend dependencies
 └── .env.example                    # Environment configuration template
@@ -117,7 +112,7 @@ pip install -r requirements.txt
 ```bash
 cp .env.example .env
 ```
-*(Optionally adjust `DATABASE_URL` and `JWT_SECRET_KEY` in `.env`)*
+*(Optionally adjust `DATABASE_URL` in `.env`)*
 
 ### 5. Run Database Migrations
 ```bash
@@ -136,7 +131,7 @@ Interactive OpenAPI documentation is available at **`http://127.0.0.1:8000/docs`
 
 ## 🧪 Testing
 
-The repository includes a comprehensive 43-test automated suite covering authentication, authorization (IDOR), inference, database transactions, batch processing, CSV formula injection protection, health probes, and frontend static asset & template delivery.
+The repository includes an automated test suite covering inference accuracy, feedback CRUD, database transactions, batch processing, CSV formula injection protection, health probes, and frontend static asset & template delivery.
 
 ```bash
 # Run the full test suite with pytest
@@ -157,36 +152,28 @@ python check_handwritten.py
 | `GET` | `/health/live` | Liveness probe for container orchestrators | None |
 | `GET` | `/health/ready` | Readiness probe verifying DB & ONNX availability | None |
 
-### Authentication
-| Method | Endpoint | Description | Auth |
-| :--- | :--- | :--- | :---: |
-| `POST` | `/register` | Register new user account (rate-limited) | None |
-| `POST` | `/login` | Authenticate and receive JWT & secure cookie | None |
-| `POST` | `/logout` | Invalidate cookie session | None |
-| `GET` | `/me` | Get profile for currently authenticated user | Bearer / Cookie |
-
 ### Sentiment Predictions
 | Method | Endpoint | Description | Auth |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/predict` | Real-time sentiment prediction for single string | Bearer / Cookie |
-| `POST` | `/predict/batch` | Batch prediction for up to 50 text items | Bearer / Cookie |
+| `POST` | `/predict` | Real-time sentiment prediction for single string | None |
+| `POST` | `/predict/batch` | Batch prediction for up to 50 text items | None |
 
 ### Customer Feedback Management
 | Method | Endpoint | Description | Auth |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/feedback` | Submit feedback, analyze sentiment & persist record | Bearer / Cookie |
-| `GET` | `/feedback` | List paginated feedback with filtering & search | Bearer / Cookie |
-| `GET` | `/feedback/{id}` | Retrieve single authorized feedback record | Bearer / Cookie |
-| `DELETE` | `/feedback/{id}` | Delete authorized feedback record | Bearer / Cookie |
-| `GET` | `/feedback/stats` | Aggregate summary statistics | Bearer / Cookie |
-| `GET` | `/feedback/export` | Download CSV export with formula injection protection | Bearer / Cookie |
+| `POST` | `/feedback` | Submit feedback, analyze sentiment & persist record | None |
+| `GET` | `/feedback` | List paginated feedback with filtering & search | None |
+| `GET` | `/feedback/{id}` | Retrieve single feedback record | None |
+| `DELETE` | `/feedback/{id}` | Delete feedback record | None |
+| `GET` | `/feedback/stats` | Aggregate summary statistics | None |
+| `GET` | `/feedback/export` | Download CSV export with formula injection protection | None |
 
 ### Batch Import & Business Intelligence
 | Method | Endpoint | Description | Auth |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/feedback/import` | Upload CSV feedback file (bounded chunk processing) | Bearer / Cookie |
-| `GET` | `/feedback/import/{id}`| Poll status and progress of import job | Bearer / Cookie |
-| `GET` | `/feedback/analytics` | Retrieve sentiment distributions, daily trends & churn alerts | Bearer / Cookie |
+| `POST` | `/feedback/import` | Upload CSV feedback file (bounded chunk processing) | None |
+| `GET` | `/feedback/import/{id}`| Poll status and progress of import job | None |
+| `GET` | `/feedback/analytics` | Retrieve sentiment distributions, daily trends & churn alerts | None |
 
 *(All endpoints are also available with `/api/` prefix for client compatibility)*
 
@@ -194,17 +181,17 @@ python check_handwritten.py
 
 ## 🔒 Security Architecture
 
-1. **IDOR Prevention:** All feedback and job queries explicitly filter on `Feedback.user_id == current_user.id` or `ImportJob.user_id == current_user.id`.
-2. **CSV Formula Injection:** User-supplied strings starting with `=`, `+`, `-`, `@`, `\t`, or `\r` are sanitized by prepending a single quote (`'`) to protect spreadsheet users.
-3. **Rate Limiting:** IP-based sliding window rate limiter protects `/login` and `/register` endpoints against brute-force attacks.
-4. **Log Sanitization:** Sensitive credentials (`password`, `Bearer` tokens, `access_token` cookies) are automatically masked in log outputs.
-5. **CORS Security:** Configurable via `ALLOWED_ORIGINS` to avoid credential leakage across arbitrary domains.
+1. **CSV Formula Injection:** User-supplied strings starting with `=`, `+`, `-`, `@`, `\t`, or `\r` are sanitized by prepending a single quote (`'`) to protect spreadsheet users.
+2. **Rate Limiting:** IP-based sliding window rate limiter protects server endpoints against abuse.
+3. **Structured Observability:** Unique correlation IDs (`X-Request-ID`) and duration tracking (`X-Process-Time`) on all incoming requests.
+4. **CORS Security:** Configurable via `ALLOWED_ORIGINS` to control browser cross-origin access.
+5. **Separated Probes:** Independent liveness and readiness health checks prevent traffic blackholing during cold starts.
 
 ---
 
 ## ☁️ Render Production Deployment
 
-The project includes a ready-to-deploy Infrastructure-as-Code blueprint in [`render.yaml`](./render.yaml).
+The project includes an Infrastructure-as-Code blueprint in [`render.yaml`](./render.yaml).
 
 1. Connect your repository to [Render](https://render.com).
 2. Render provisions both the **Web Service** and managed **PostgreSQL Database** (`sentiment-pulse-db`).

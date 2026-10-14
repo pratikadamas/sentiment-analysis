@@ -1,14 +1,12 @@
 """
 Test suite for CSV batch imports, job tracking, and secure exports.
-Validates bounded CSV parsing, formula injection sanitization, and export confidentiality.
+Validates bounded CSV parsing, formula injection sanitization, and export functionality without authentication.
 """
 
-import time
 import io
 import pytest
 from fastapi.testclient import TestClient
 from main import app
-from tests.test_feedback_api import register_and_login
 
 
 @pytest.fixture(scope="module")
@@ -18,8 +16,6 @@ def client():
 
 
 def test_csv_upload_and_job_processing(client):
-    user, headers = register_and_login(client, "csvuser")
-
     # Prepare sample CSV
     csv_data = """text,category,rating
 "The application is fast and intuitive.",UX,5
@@ -29,8 +25,7 @@ def test_csv_upload_and_job_processing(client):
     file_bytes = io.BytesIO(csv_data.encode("utf-8"))
     upload_res = client.post(
         "/feedback/import",
-        files={"file": ("customer_reviews.csv", file_bytes, "text/csv")},
-        headers=headers
+        files={"file": ("customer_reviews.csv", file_bytes, "text/csv")}
     )
     assert upload_res.status_code == 202
     job_info = upload_res.json()
@@ -39,7 +34,7 @@ def test_csv_upload_and_job_processing(client):
     job_id = job_info["id"]
 
     # Poll status
-    status_res = client.get(f"/feedback/import/{job_id}", headers=headers)
+    status_res = client.get(f"/feedback/import/{job_id}")
     assert status_res.status_code == 200
     job_status = status_res.json()
     assert job_status["status"] == "COMPLETED"
@@ -48,18 +43,16 @@ def test_csv_upload_and_job_processing(client):
     assert job_status["failed_rows"] == 0
 
     # Verify feedback records were actually persisted
-    list_res = client.get("/feedback", headers=headers)
+    list_res = client.get("/feedback")
     assert list_res.status_code == 200
-    assert list_res.json()["total"] == 3
+    assert list_res.json()["total"] >= 3
 
 
 def test_invalid_file_extension_rejected(client):
-    user, headers = register_and_login(client, "badfileuser")
     file_bytes = io.BytesIO(b"binary data")
     res = client.post(
         "/feedback/import",
-        files={"file": ("notes.txt", file_bytes, "text/plain")},
-        headers=headers
+        files={"file": ("notes.txt", file_bytes, "text/plain")}
     )
     assert res.status_code == 400
     assert "Only CSV files are accepted" in res.json()["detail"]
@@ -71,8 +64,6 @@ def test_csv_formula_injection_protection_on_export(client):
     Verifies that customer feedback beginning with dangerous spreadsheet formula characters
     (=, +, -, @) are sanitized with a leading single quote (') upon CSV export.
     """
-    user, headers = register_and_login(client, "formulauser")
-
     # Inject formula payloads
     payloads = [
         "=SUM(A1:A10)",
@@ -81,10 +72,10 @@ def test_csv_formula_injection_protection_on_export(client):
         "+cmd|' /C calc'!A0"
     ]
     for text in payloads:
-        client.post("/feedback", json={"text": text}, headers=headers)
+        client.post("/feedback", json={"text": text})
 
     # Export CSV
-    export_res = client.get("/feedback/export", headers=headers)
+    export_res = client.get("/feedback/export")
     assert export_res.status_code == 200
     assert export_res.headers["content-type"].startswith("text/csv")
     csv_text = export_res.text

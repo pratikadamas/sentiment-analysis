@@ -4,7 +4,6 @@ Features:
 - Lifespan initialization for database and ONNX inference engine
 - Correlation ID middleware (X-Request-ID) and latency tracking
 - Production CORS and security middleware
-- User authentication, JWT sessions, and rate limiting
 - Customer feedback persistence, pagination, multi-criteria filtering, and deletion
 - Real-time single and batch prediction endpoints
 - Bounded CSV chunked imports and formula-injection-safe exports
@@ -18,7 +17,7 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Dict, List, Optional, Any
 
-from fastapi import FastAPI, HTTPException, status, Request, Depends
+from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -28,11 +27,9 @@ from core.config import settings
 from core.logging import setup_logging, get_logger
 from core.middleware import RequestContextMiddleware
 from db.session import init_db
-from db.models import User
 from services.sentiment_service import sentiment_service
 
 # Routers
-from api.routes.auth import router as auth_router, get_current_user, get_token
 from api.routes.predictions import router as predictions_router
 from api.routes.feedback import router as feedback_router, api_router as api_feedback_router
 from api.routes.imports import router as imports_router, api_router as api_imports_router
@@ -70,7 +67,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Sentiment Pulse Intelligence Platform API",
-    description="Customer feedback sentiment analysis platform with JWT Auth, persistent feedback records, batch CSV ingestion, and business intelligence.",
+    description="Customer feedback sentiment analysis platform with persistent feedback records, batch CSV ingestion, and business intelligence.",
     version=settings.APP_VERSION,
     lifespan=lifespan
 )
@@ -85,6 +82,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Exception Handler ensuring structured JSON error responses rather than plain text
@@ -115,7 +113,6 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 # 4. Include Route Handlers (Mount static subpaths before parameterized /{id} paths)
 app.include_router(health_router)
-app.include_router(auth_router)
 app.include_router(predictions_router)
 app.include_router(analytics_router)
 app.include_router(api_analytics_router)
@@ -125,17 +122,17 @@ app.include_router(feedback_router)
 app.include_router(api_feedback_router)
 
 
-# 5. Frontend HTML Routes (Preserving Full Backward Compatibility)
+# 5. Frontend HTML Routes (No authentication required)
 @app.get("/", response_class=HTMLResponse)
-async def serve_index(request: Request, current_user: User = Depends(get_current_user)):
+async def serve_index(request: Request):
     """
     Renders the web frontend interface.
-    Requires authenticated user (redirects to /login if unauthenticated).
+    Opens directly to the dashboard without authentication.
     """
     index_path = os.path.join(TEMPLATES_DIR, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    
+
     return HTMLResponse(
         content=f"""
         <!DOCTYPE html>
@@ -143,7 +140,7 @@ async def serve_index(request: Request, current_user: User = Depends(get_current
         <head><title>{settings.APP_NAME}</title></head>
         <body style="font-family: sans-serif; text-align: center; padding: 50px;">
             <h2>{settings.APP_NAME} API is Running</h2>
-            <p>Welcome, {current_user.username}!</p>
+            <p>Customer Feedback Intelligence Platform</p>
             <p>Interactive API Docs: <a href="/docs">/docs</a> | Healthcheck: <a href="/health">/health</a></p>
         </body>
         </html>
@@ -152,22 +149,6 @@ async def serve_index(request: Request, current_user: User = Depends(get_current
     )
 
 
-@app.get("/login", response_class=HTMLResponse)
-async def serve_login(request: Request):
-    """Renders the login page template."""
-    login_path = os.path.join(TEMPLATES_DIR, "login.html")
-    if os.path.exists(login_path):
-        return FileResponse(login_path)
-    return HTMLResponse("<h2>Login Page</h2><p>Template under construction.</p>", status_code=200)
-
-
-@app.get("/register", response_class=HTMLResponse)
-async def serve_register(request: Request):
-    """Renders the register page template."""
-    register_path = os.path.join(TEMPLATES_DIR, "register.html")
-    if os.path.exists(register_path):
-        return FileResponse(register_path)
-    return HTMLResponse("<h2>Register Page</h2><p>Template under construction.</p>", status_code=200)
 
 
 # Helper function kept for backwards compatibility

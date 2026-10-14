@@ -4,7 +4,7 @@ Re-exports ORM models, session providers, and engine from db.session and db.mode
 """
 
 from db.session import engine, SessionLocal, get_db, init_db
-from db.models import Base, User, Feedback, ImportJob, EmailVerificationToken
+from db.models import Base, Feedback, ImportJob
 
 __all__ = [
     "engine",
@@ -12,8 +12,6 @@ __all__ = [
     "get_db",
     "init_db",
     "Base",
-    "User",
     "Feedback",
     "ImportJob",
-    "EmailVerificationToken",
 ]

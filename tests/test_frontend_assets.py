@@ -1,7 +1,7 @@
 """
 Frontend static assets and template integration test suite.
-Verifies that all server-rendered HTML templates and static JavaScript/CSS modules
-are served correctly by FastAPI and contain the required DOM structure.
+Verifies that the dashboard template and static JavaScript/CSS modules
+are served correctly by FastAPI and contain the required DOM structure without authentication.
 """
 
 import pytest
@@ -14,65 +14,29 @@ def client():
     return TestClient(app, base_url="https://testserver", follow_redirects=False)
 
 
-def test_login_page_renders_cleanly(client):
-    """Verifies that /login renders the accessible login template with form elements."""
-    response = client.get("/login")
-    assert response.status_code == 200
-    assert "text/html" in response.headers["content-type"]
-    html = response.text
-    assert "Sign In" in html
-    assert 'id="login-form"' in html
-    assert 'id="username"' in html
-    assert 'id="password"' in html
-    assert 'id="theme-toggle"' in html
-    assert "/static/theme.js" in html
-    assert "/static/css/app.css" in html
+def test_login_and_register_routes_return_404(client):
+    """Verifies that /login, /register, and all auth routes are permanently removed and return 404."""
+    for path in [
+        "/login",
+        "/register",
+        "/logout",
+        "/me",
+        "/auth/verify-email",
+        "/auth/resend-verification",
+        "/api/login",
+        "/api/register",
+        "/api/logout",
+        "/api/me",
+        "/api/auth/verify-email",
+        "/api/auth/resend-verification",
+    ]:
+        assert client.get(path).status_code == 404, f"GET {path} should be 404"
+        assert client.post(path).status_code == 404, f"POST {path} should be 404"
 
 
-def test_register_page_renders_cleanly(client):
-    """Verifies that /register renders the accessible registration template."""
-    response = client.get("/register")
-    assert response.status_code == 200
-    assert "text/html" in response.headers["content-type"]
-    html = response.text
-    assert "Create your account" in html
-    assert 'id="register-form"' in html
-    assert 'id="username"' in html
-    assert 'id="email"' in html
-    assert 'id="password"' in html
-    assert 'id="confirm-password"' in html
-    assert 'id="theme-toggle"' in html
 
-
-def test_unauthenticated_root_redirects_to_login(client):
-    """Unauthenticated users accessing / should be redirected to /login with 302."""
-    response = client.get("/")
-    assert response.status_code == 302
-    assert response.headers["location"] == "/login"
-
-
-def test_authenticated_root_renders_saas_shell(client):
-    """Authenticated user accessing / should receive the index.html SaaS dashboard."""
-    import time
-    username = f"front_user_{int(time.time() * 1000)}"
-    # Register and login a test user
-    test_email = f"{username}@example.com"
-    client.post("/register", json={
-        "username": username,
-        "email": test_email,
-        "password": "SecretPassword123"
-    })
-    from services.email_service import email_service
-    token = email_service.get_last_sent_token_for(test_email)
-    if token:
-        client.get(f"/auth/verify-email?token={token}", follow_redirects=False)
-
-    login_resp = client.post("/login", json={
-        "username": username,
-        "password": "SecretPassword123"
-    })
-    assert login_resp.status_code == 200
-
+def test_root_renders_saas_shell_directly(client):
+    """Accessing / directly renders the SaaS dashboard without requiring login."""
     response = client.get("/")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]

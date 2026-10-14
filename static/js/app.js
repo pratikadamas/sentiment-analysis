@@ -96,7 +96,6 @@ const App = {
 
   async init() {
     this.bindNavigation();
-    await this.loadUserProfile();
 
     // Route based on URL hash or default to overview
     const hash = window.location.hash.replace('#', '');
@@ -119,28 +118,6 @@ const App = {
     if (window.ExplorerController) window.ExplorerController.init();
     if (window.AnalyticsController) window.AnalyticsController.init();
     if (window.ImportsController) window.ImportsController.init();
-  },
-
-  async loadUserProfile() {
-    try {
-      const user = await window.api.getMe();
-      const displayName = document.getElementById('user-display-name');
-      const avatarInitial = document.getElementById('user-avatar-initial');
-      const userEmail = document.getElementById('user-email');
-
-      if (displayName) displayName.textContent = user.username;
-      if (avatarInitial) avatarInitial.textContent = user.username.charAt(0).toUpperCase();
-      if (userEmail) userEmail.textContent = user.email;
-
-      localStorage.setItem('username', user.username);
-    } catch {
-      // Fallback to localStorage if offline
-      const storedName = localStorage.getItem('username') || 'User';
-      const displayName = document.getElementById('user-display-name');
-      const avatarInitial = document.getElementById('user-avatar-initial');
-      if (displayName) displayName.textContent = storedName;
-      if (avatarInitial) avatarInitial.textContent = storedName.charAt(0).toUpperCase();
-    }
   },
 
   bindNavigation() {
@@ -171,22 +148,6 @@ const App = {
     if (drawerBackdrop) {
       drawerBackdrop.addEventListener('click', () => this.closeMobileDrawer());
     }
-
-    // Logout Button Listener
-    const logoutBtns = document.querySelectorAll('.logout-trigger');
-    logoutBtns.forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-          await window.api.logout();
-        } catch (err) {
-          console.warn('Logout API error:', err);
-        }
-        localStorage.removeItem('username');
-        localStorage.removeItem('email');
-        window.location.href = '/login';
-      });
-    });
   },
 
   switchView(viewName, updateHash = true) {

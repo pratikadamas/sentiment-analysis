@@ -11,7 +11,7 @@ class ImportJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
-    user_id: int
+    user_id: Optional[int] = None
     filename: str
     total_rows: int
     processed_rows: int

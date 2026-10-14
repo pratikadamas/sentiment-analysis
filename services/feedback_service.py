@@ -1,6 +1,7 @@
 """
 Service layer for customer feedback management.
-Handles persistent feedback creation, querying, pagination, filtering, ownership checks, and deletion.
+Handles persistent feedback creation, querying, pagination, filtering, statistics, and deletion.
+Authentication and user-isolation checks have been permanently removed.
 """
 
 from typing import Optional, Dict, Any, Tuple, List
@@ -9,7 +10,7 @@ import math
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, asc
 
-from db.models import User, Feedback
+from db.models import Feedback
 from schemas.feedback import FeedbackCreate, FeedbackListResponse, FeedbackResponse, FeedbackStatsResponse
 from services.sentiment_service import sentiment_service
 from core.logging import get_logger
@@ -19,16 +20,16 @@ logger = get_logger(__name__)
 
 class FeedbackService:
     @staticmethod
-    def create_feedback(db: Session, user: User, payload: FeedbackCreate) -> Feedback:
+    def create_feedback(db: Session, payload: FeedbackCreate) -> Feedback:
         """
-        Runs sentiment inference on incoming customer feedback, persists record associated
-        with the authenticated user, and returns the created model.
+        Runs sentiment inference on incoming customer feedback, persists record,
+        and returns the created model.
         """
         prediction = sentiment_service.predict(payload.text)
         scores = prediction.get("scores", {})
 
         feedback = Feedback(
-            user_id=user.id,
+            user_id=None,
             text=payload.text,
             clean_text=prediction.get("text", payload.text),
             sentiment=prediction.get("sentiment", "unknown"),
@@ -46,40 +47,33 @@ class FeedbackService:
         db.add(feedback)
         db.commit()
         db.refresh(feedback)
-        logger.info(f"Persisted feedback {feedback.id} for user {user.username} with sentiment '{feedback.sentiment}'.")
+        logger.info(f"Persisted feedback {feedback.id} with sentiment '{feedback.sentiment}'.")
         return feedback
 
     @staticmethod
-    def get_feedback_by_id(db: Session, user: User, feedback_id: int) -> Optional[Feedback]:
+    def get_feedback_by_id(db: Session, feedback_id: int) -> Optional[Feedback]:
         """
-        Retrieves a feedback record ensuring strict user-ownership (IDOR protection).
+        Retrieves a feedback record by ID.
         """
-        return db.query(Feedback).filter(
-            Feedback.id == feedback_id,
-            Feedback.user_id == user.id
-        ).first()
+        return db.query(Feedback).filter(Feedback.id == feedback_id).first()
 
     @staticmethod
-    def delete_feedback(db: Session, user: User, feedback_id: int) -> bool:
+    def delete_feedback(db: Session, feedback_id: int) -> bool:
         """
-        Deletes a feedback record owned by the authenticated user.
+        Deletes a feedback record by ID.
         """
-        record = db.query(Feedback).filter(
-            Feedback.id == feedback_id,
-            Feedback.user_id == user.id
-        ).first()
+        record = db.query(Feedback).filter(Feedback.id == feedback_id).first()
         if not record:
             return False
 
         db.delete(record)
         db.commit()
-        logger.info(f"Deleted feedback record {feedback_id} for user {user.username}.")
+        logger.info(f"Deleted feedback record {feedback_id}.")
         return True
 
     @staticmethod
     def list_feedback(
         db: Session,
-        user: User,
         page: int = 1,
         page_size: int = 20,
         sentiment: Optional[str] = None,
@@ -93,12 +87,12 @@ class FeedbackService:
         sort_order: str = "desc"
     ) -> FeedbackListResponse:
         """
-        Retrieves paginated feedback records with multi-criteria filtering and ownership enforcement.
+        Retrieves paginated feedback records with multi-criteria filtering across the database.
         """
         page = max(1, page)
         page_size = min(max(1, page_size), 100)  # Bound between 1 and 100
 
-        query = db.query(Feedback).filter(Feedback.user_id == user.id)
+        query = db.query(Feedback)
 
         # Filters
         if sentiment:
@@ -138,16 +132,14 @@ class FeedbackService:
         )
 
     @staticmethod
-    def get_feedback_stats(db: Session, user: User) -> FeedbackStatsResponse:
+    def get_feedback_stats(db: Session) -> FeedbackStatsResponse:
         """
-        Aggregates summary sentiment statistics for the authenticated user.
+        Aggregates summary sentiment statistics across all feedback records.
         """
         # Count by sentiment
         counts = db.query(
             Feedback.sentiment,
             func.count(Feedback.id)
-        ).filter(
-            Feedback.user_id == user.id
         ).group_by(
             Feedback.sentiment
         ).all()
@@ -164,7 +156,7 @@ class FeedbackService:
         neg_pct = round((neg / total) * 100, 2) if total > 0 else 0.0
 
         # Average confidence
-        avg_conf = db.query(func.avg(Feedback.confidence)).filter(Feedback.user_id == user.id).scalar()
+        avg_conf = db.query(func.avg(Feedback.confidence)).scalar()
         avg_conf = round(float(avg_conf), 3) if avg_conf is not None else 0.0
 
         # Categories count
@@ -172,7 +164,6 @@ class FeedbackService:
             Feedback.category,
             func.count(Feedback.id)
         ).filter(
-            Feedback.user_id == user.id,
             Feedback.category.isnot(None)
         ).group_by(Feedback.category).all()
         category_counts = {row[0]: row[1] for row in cat_counts_query if row[0]}
@@ -182,7 +173,6 @@ class FeedbackService:
             Feedback.source,
             func.count(Feedback.id)
         ).filter(
-            Feedback.user_id == user.id,
             Feedback.source.isnot(None)
         ).group_by(Feedback.source).all()
         source_counts = {row[0]: row[1] for row in source_counts_query if row[0]}

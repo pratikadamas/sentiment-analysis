@@ -1,6 +1,6 @@
 /**
  * Sentiment Pulse - API Client Service (api.js)
- * Handles centralized network requests, credential cookies, error parsing, and session expiry.
+ * Centralized API client service for sentiment analysis and customer feedback intelligence.
  */
 
 const API = {
@@ -29,15 +29,6 @@ const API = {
       const requestId = response.headers.get('X-Request-ID');
       const processTime = response.headers.get('X-Process-Time');
 
-      // Handle unauthenticated session expiry
-      if (response.status === 401) {
-        localStorage.removeItem('username');
-        localStorage.removeItem('email');
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
-          window.location.href = '/login?session_expired=true';
-        }
-        throw new Error('Your session has expired. Please sign in again.');
-      }
 
       // Handle raw non-JSON responses (e.g. CSV exports, HTML fallbacks)
       const contentType = response.headers.get('content-type') || '';
@@ -79,14 +70,6 @@ const API = {
     }
   },
 
-  // Auth Endpoints
-  async getMe() {
-    return this.request('/me');
-  },
-
-  async logout() {
-    return this.request('/logout', { method: 'POST' });
-  },
 
   // Prediction Endpoints
   async predict(text) {

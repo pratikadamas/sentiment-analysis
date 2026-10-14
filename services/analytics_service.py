@@ -9,7 +9,7 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 
-from db.models import User, Feedback
+from db.models import Feedback
 from schemas.analytics import (
     FeedbackAnalyticsResponse,
     SentimentTrendPoint,
@@ -23,14 +23,13 @@ class AnalyticsService:
     @staticmethod
     def get_analytics(
         db: Session,
-        user: User,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> FeedbackAnalyticsResponse:
         """
-        Computes business intelligence metrics from user's persisted feedback records.
+        Computes business intelligence metrics across persisted feedback records.
         """
-        base_query = db.query(Feedback).filter(Feedback.user_id == user.id)
+        base_query = db.query(Feedback)
         if start_date:
             base_query = base_query.filter(Feedback.created_at >= start_date)
         if end_date:

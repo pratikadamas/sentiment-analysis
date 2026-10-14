@@ -1,6 +1,7 @@
 """
 CSV import processing pipeline and secure export service.
 Includes bounded chunking, encoding fallbacks, ImportJob state tracking, and CSV formula injection sanitization.
+Authentication and user-isolation checks have been permanently removed.
 """
 
 import io
@@ -11,7 +12,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Tuple, Optional
 from sqlalchemy.orm import Session
 
-from db.models import User, Feedback, ImportJob
+from db.models import Feedback, ImportJob
 from core.config import settings
 from core.logging import get_logger
 from services.sentiment_service import sentiment_service
@@ -34,10 +35,10 @@ def sanitize_csv_cell(value: Any) -> str:
 
 class ImportService:
     @staticmethod
-    def create_import_job(db: Session, user: User, filename: str) -> ImportJob:
+    def create_import_job(db: Session, filename: str) -> ImportJob:
         job = ImportJob(
             id=str(uuid.uuid4()),
-            user_id=user.id,
+            user_id=None,
             filename=filename,
             total_rows=0,
             processed_rows=0,
@@ -52,15 +53,12 @@ class ImportService:
         return job
 
     @staticmethod
-    def get_import_job(db: Session, user: User, job_id: str) -> Optional[ImportJob]:
-        """Strict user-ownership retrieval of import job."""
-        return db.query(ImportJob).filter(
-            ImportJob.id == job_id,
-            ImportJob.user_id == user.id
-        ).first()
+    def get_import_job(db: Session, job_id: str) -> Optional[ImportJob]:
+        """Retrieval of import job by ID."""
+        return db.query(ImportJob).filter(ImportJob.id == job_id).first()
 
     @staticmethod
-    def process_csv_bytes(db: Session, user: User, job: ImportJob, content: bytes) -> ImportJob:
+    def process_csv_bytes(db: Session, job: ImportJob, content: bytes) -> ImportJob:
         """
         Parses and processes CSV bytes in bounded chunks, creating Feedback records.
         """
@@ -165,7 +163,7 @@ class ImportService:
                     pred = sentiment_service.predict(raw_text)
                     scores = pred.get("scores", {})
                     fb = Feedback(
-                        user_id=user.id,
+                        user_id=None,
                         text=raw_text,
                         clean_text=pred.get("text", raw_text),
                         sentiment=pred.get("sentiment", "unknown"),
@@ -202,11 +200,11 @@ class ImportService:
         return job
 
     @staticmethod
-    def generate_csv_export(db: Session, user: User) -> str:
+    def generate_csv_export(db: Session) -> str:
         """
-        Generates CSV string of all feedback records owned by user, with formula injection protection.
+        Generates CSV string of all feedback records with formula injection protection.
         """
-        records = db.query(Feedback).filter(Feedback.user_id == user.id).order_by(Feedback.created_at.desc()).all()
+        records = db.query(Feedback).order_by(Feedback.created_at.desc()).all()
         output = io.StringIO()
         writer = csv.writer(output)
 

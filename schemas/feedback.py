@@ -45,7 +45,7 @@ class FeedbackResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    user_id: int
+    user_id: Optional[int] = None
     text: str
     clean_text: Optional[str] = None
     sentiment: str

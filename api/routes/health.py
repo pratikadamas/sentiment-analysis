@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from db.session import get_db
-from db.models import User
+from db.models import Feedback
 from services.sentiment_service import sentiment_service
 from schemas.health import HealthResponse, ReadinessResponse
 from core.config import settings
@@ -73,7 +73,7 @@ def readiness_check(db: Session = Depends(get_db)):
     db_status = "ok"
     try:
         db.execute(text("SELECT 1"))
-        db.query(User).first()
+        db.query(Feedback).first()
     except Exception as e:
         logger.error(f"Readiness probe DB connection or schema query failed: {e}")
         db_status = f"unhealthy: {str(e)}"
