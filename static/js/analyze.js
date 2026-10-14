@@ -133,6 +133,31 @@ const AnalyzeController = {
 
       const elapsed = Math.round(performance.now() - t0);
       this.displayResults(result, elapsed, shouldSave);
+
+      // Persist to local IndexedDB history (Phase 2)
+      if (window.historyStore && typeof window.historyStore.addEntry === 'function') {
+        try {
+          const scores = result.scores || {
+            positive:
+              result.sentiment === 'positive' ? result.confidence : (1 - result.confidence) / 2,
+            neutral:
+              result.sentiment === 'neutral' ? result.confidence : (1 - result.confidence) / 2,
+            negative:
+              result.sentiment === 'negative' ? result.confidence : (1 - result.confidence) / 2,
+          };
+          await window.historyStore.addEntry({
+            text,
+            sentiment: result.sentiment,
+            confidence: result.confidence,
+            scores,
+            source: source || 'web',
+            feedbackId: shouldSave && result.id ? result.id : null,
+          });
+          window.dispatchEvent(new CustomEvent('history-updated'));
+        } catch (storeErr) {
+          console.warn('Failed to persist to local history:', storeErr);
+        }
+      }
     } catch (err) {
       console.error('Inference error:', err);
       if (skeleton) skeleton.classList.add('hidden');
@@ -143,6 +168,37 @@ const AnalyzeController = {
       if (btnSpinner) btnSpinner.classList.add('hidden');
       if (btnText) btnText.textContent = 'Analyze Sentiment';
     }
+  },
+
+  rehydrate(entry) {
+    if (!entry) return;
+
+    const textInput = document.getElementById('analyze-text-input');
+    const charCounter = document.getElementById('analyze-char-counter');
+
+    if (textInput) {
+      textInput.value = entry.text || '';
+      if (charCounter) charCounter.textContent = `${textInput.value.length} / 2000`;
+    }
+
+    const data = {
+      sentiment: entry.sentiment,
+      confidence: entry.confidence,
+      scores: entry.scores || {},
+      id: entry.feedbackId || null,
+      isRehydrated: true,
+      timestamp: entry.timestamp,
+    };
+
+    // Render directly from local storage without calling /predict or /feedback
+    this.displayResults(data, 0, Boolean(entry.feedbackId));
+
+    const latencyEl = document.getElementById('analyze-latency-tag');
+    if (latencyEl) {
+      latencyEl.textContent = 'Loaded from local history';
+    }
+
+    window.showToast('Analysis rehydrated from local history.', 'info');
   },
 
   displayResults(data, elapsedMs, wasSaved) {
@@ -169,9 +225,23 @@ const AnalyzeController = {
     if (emptyState) emptyState.classList.add('hidden');
     if (activeResults) activeResults.classList.remove('hidden');
 
-    if (latencyEl) latencyEl.textContent = `${elapsedMs}ms latency`;
+    if (latencyEl) {
+      latencyEl.textContent = data.isRehydrated
+        ? 'Loaded from local history'
+        : `${elapsedMs}ms latency`;
+    }
     if (savedTagEl) {
-      if (wasSaved && data.id) {
+      if (data.isRehydrated) {
+        if (data.id) {
+          savedTagEl.textContent = `History Record (DB #${data.id})`;
+          savedTagEl.className =
+            'text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20';
+        } else {
+          savedTagEl.textContent = 'History Record (Local)';
+          savedTagEl.className =
+            'text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-500 border border-slate-500/20';
+        }
+      } else if (wasSaved && data.id) {
         savedTagEl.textContent = `Persisted (ID #${data.id})`;
         savedTagEl.className =
           'text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';

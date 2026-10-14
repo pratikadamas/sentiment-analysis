@@ -118,6 +118,10 @@
         <span class="text-base">📥</span>
         <span>Import / Export</span>
       </a>
+      <a href="#history" data-view="history" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-base">📜</span>
+        <span>Analysis History</span>
+      </a>
     </nav>
 
     <!-- Mobile Drawer Footer -->
@@ -172,6 +176,11 @@
       <a href="#import-export" data-view="import-export" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
         <span class="text-sm">📥</span>
         <span>Import / Export</span>
+      </a>
+
+      <a href="#history" data-view="history" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+        <span class="text-sm">📜</span>
+        <span>Analysis History</span>
       </a>
 
       <div class="pt-4 px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Developer & API</div>
@@ -1013,6 +1022,105 @@
 
     </div>
 
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 6: LOCAL ANALYSIS HISTORY (INDEXEDDB)                            -->
+    <!-- ===================================================================== -->
+    <div id="view-history" class="hidden space-y-6">
+      
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div>
+          <h1 class="text-2xl font-bold font-display text-slate-900 dark:text-white">Analysis History</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Private client-side history stored locally in your browser's IndexedDB (capped at 200 analyses).</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button id="history-clear-btn" type="button" class="px-3.5 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-medium border border-rose-200 dark:border-rose-900/50 flex items-center space-x-1.5 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-colors">
+            <span>🗑️</span>
+            <span>Clear All History</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters & Search Toolbar -->
+      <div class="saas-card p-4 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+          
+          <!-- Search Input -->
+          <div class="lg:col-span-6">
+            <input 
+              type="text" 
+              id="history-search-input" 
+              placeholder="Search history by text or keyword..." 
+              class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <!-- Sentiment Filter -->
+          <div class="lg:col-span-3">
+            <select id="history-filter-sentiment" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="all">All Sentiments</option>
+              <option value="positive">Positive</option>
+              <option value="neutral">Neutral</option>
+              <option value="negative">Negative</option>
+            </select>
+          </div>
+
+          <!-- Sort Select -->
+          <div class="lg:col-span-3">
+            <select id="history-sort-select" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="date-desc">Newest First</option>
+              <option value="date-asc">Oldest First</option>
+              <option value="confidence-desc">Highest Confidence</option>
+              <option value="confidence-asc">Lowest Confidence</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+          <span id="history-count-info">Loading history...</span>
+          <button id="history-reset-filters-btn" type="button" class="hover:text-slate-800 dark:hover:text-slate-200 font-medium">Reset Filters</button>
+        </div>
+      </div>
+
+      <!-- History Records Table & Cards -->
+      <div class="saas-card overflow-hidden">
+        
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="w-full text-left border-collapse" role="table">
+            <thead>
+              <tr class="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <th class="px-4 py-3">Sentiment</th>
+                <th class="px-4 py-3">Analysis Text</th>
+                <th class="px-4 py-3">Confidence</th>
+                <th class="px-4 py-3">Source</th>
+                <th class="px-4 py-3">Date</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Cards List -->
+        <div id="history-mobile-cards" class="md:hidden p-4 space-y-3">
+          <!-- Dynamically rendered for mobile viewports -->
+        </div>
+
+        <!-- Empty Results Message -->
+        <div id="history-empty-state" class="hidden py-12 text-center text-slate-400">
+          <div class="text-3xl mb-2">📜</div>
+          <p class="text-xs font-medium text-slate-600 dark:text-slate-300">No local analysis history found</p>
+          <p class="text-[11px] text-slate-400 mt-1">Analyses executed in the Analyze tab will be saved here automatically.</p>
+        </div>
+
+      </div>
+
+    </div>
+
   </main>
 
   <!-- ===================================================================== -->
@@ -1098,15 +1206,17 @@
   </div>
 
   <!-- Application Modular Scripts -->
-  <script src="/static/js/lib/formatters.js"></script>
-  <script src="/static/js/lib/chunker.js"></script>
-  <script src="/static/js/lib/modal.js"></script>
+  <script type="module" src="/static/js/lib/formatters.js"></script>
+  <script type="module" src="/static/js/lib/chunker.js"></script>
+  <script type="module" src="/static/js/lib/modal.js"></script>
+  <script type="module" src="/static/js/lib/store.js"></script>
   <script src="/static/js/api.js"></script>
   <script src="/static/js/overview.js"></script>
   <script src="/static/js/analyze.js"></script>
   <script src="/static/js/explorer.js"></script>
   <script src="/static/js/analytics.js"></script>
   <script src="/static/js/imports.js"></script>
+  <script src="/static/js/history.js"></script>
   <script src="/static/js/app.js"></script>
 </body>
 </html>

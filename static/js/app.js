@@ -130,7 +130,7 @@ window.showConfirm = function (
 // View Routing State
 const App = {
   currentView: 'overview',
-  views: ['overview', 'analyze', 'explorer', 'analytics', 'import-export'],
+  views: ['overview', 'analyze', 'explorer', 'analytics', 'import-export', 'history'],
 
   async init() {
     this.bindNavigation();
@@ -156,6 +156,7 @@ const App = {
     if (window.ExplorerController) window.ExplorerController.init();
     if (window.AnalyticsController) window.AnalyticsController.init();
     if (window.ImportsController) window.ImportsController.init();
+    if (window.HistoryController) window.HistoryController.init();
   },
 
   bindNavigation() {
@@ -243,6 +244,8 @@ const App = {
       window.ExplorerController.loadData();
     } else if (viewName === 'analytics' && window.AnalyticsController) {
       window.AnalyticsController.loadAnalytics();
+    } else if (viewName === 'history' && window.HistoryController) {
+      window.HistoryController.loadHistory();
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
