@@ -6,13 +6,17 @@
 // Global Utility: HTML Escape
 window.escapeHtml = function (str) {
   if (str === null || str === undefined) return '';
-  return String(str).replace(/[&<>'"]/g, tag => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    "'": '&#39;',
-    '"': '&quot;'
-  }[tag] || tag));
+  return String(str).replace(
+    /[&<>'"]/g,
+    (tag) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;',
+      })[tag] || tag
+  );
 };
 
 // Global Utility: Toast Notifications
@@ -123,7 +127,7 @@ const App = {
   bindNavigation() {
     // Navigation link clicks (both desktop and mobile)
     const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
+    navLinks.forEach((link) => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const targetView = link.getAttribute('data-view');
@@ -159,7 +163,7 @@ const App = {
     }
 
     // Toggle view containers
-    this.views.forEach(v => {
+    this.views.forEach((v) => {
       const container = document.getElementById(`view-${v}`);
       if (container) {
         if (v === viewName) {
@@ -171,15 +175,27 @@ const App = {
     });
 
     // Update active state in navbars
-    document.querySelectorAll('.nav-link').forEach(link => {
+    document.querySelectorAll('.nav-link').forEach((link) => {
       const target = link.getAttribute('data-view');
       const isSelected = target === viewName;
 
       if (isSelected) {
-        link.classList.add('bg-indigo-50', 'text-indigo-600', 'dark:bg-indigo-500/10', 'dark:text-indigo-400', 'font-semibold');
+        link.classList.add(
+          'bg-indigo-50',
+          'text-indigo-600',
+          'dark:bg-indigo-500/10',
+          'dark:text-indigo-400',
+          'font-semibold'
+        );
         link.classList.remove('text-slate-600', 'dark:text-slate-400');
       } else {
-        link.classList.remove('bg-indigo-50', 'text-indigo-600', 'dark:bg-indigo-500/10', 'dark:text-indigo-400', 'font-semibold');
+        link.classList.remove(
+          'bg-indigo-50',
+          'text-indigo-600',
+          'dark:bg-indigo-500/10',
+          'dark:text-indigo-400',
+          'font-semibold'
+        );
         link.classList.add('text-slate-600', 'dark:text-slate-400');
       }
     });
@@ -208,7 +224,7 @@ const App = {
     const backdrop = document.getElementById('mobile-drawer-backdrop');
     if (drawer) drawer.classList.add('-translate-x-full');
     if (backdrop) backdrop.classList.add('hidden');
-  }
+  },
 };
 
 window.App = App;

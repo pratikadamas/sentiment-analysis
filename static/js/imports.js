@@ -33,7 +33,7 @@ const ImportsController = {
     }
 
     if (dropZone) {
-      ['dragenter', 'dragover'].forEach(eventName => {
+      ['dragenter', 'dragover'].forEach((eventName) => {
         dropZone.addEventListener(eventName, (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -41,7 +41,7 @@ const ImportsController = {
         });
       });
 
-      ['dragleave', 'drop'].forEach(eventName => {
+      ['dragleave', 'drop'].forEach((eventName) => {
         dropZone.addEventListener(eventName, (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -85,7 +85,10 @@ const ImportsController = {
 
     const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
     if (file.size > MAX_SIZE) {
-      window.showToast(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds 5MB limit.`, 'error');
+      window.showToast(
+        `File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds 5MB limit.`,
+        'error'
+      );
       return;
     }
 
@@ -166,7 +169,8 @@ const ImportsController = {
         const pct = Math.min(Math.round((processed / total) * 100), 95);
 
         if (progressBar) progressBar.style.width = `${pct}%`;
-        if (progressText) progressText.textContent = `Processing records (${processed} / ${total})...`;
+        if (progressText)
+          progressText.textContent = `Processing records (${processed} / ${total})...`;
 
         if (job.status === 'COMPLETED' || job.status === 'FAILED') {
           clearInterval(this.pollingInterval);
@@ -201,7 +205,7 @@ const ImportsController = {
       if (job.error_summary) {
         try {
           const errors = JSON.parse(job.error_summary);
-          errorBox.innerHTML = errors.map(e => `<li>${window.escapeHtml(e)}</li>`).join('');
+          errorBox.innerHTML = errors.map((e) => `<li>${window.escapeHtml(e)}</li>`).join('');
           errorBox.classList.remove('hidden');
         } catch {
           errorBox.classList.add('hidden');
@@ -227,14 +231,16 @@ const ImportsController = {
     if (errorBox) {
       let errors = ['The server was unable to parse or process the CSV file.'];
       if (job.error_summary) {
-        try { errors = JSON.parse(job.error_summary); } catch {}
+        try {
+          errors = JSON.parse(job.error_summary);
+        } catch {}
       }
-      errorBox.innerHTML = errors.map(e => `<li>${window.escapeHtml(e)}</li>`).join('');
+      errorBox.innerHTML = errors.map((e) => `<li>${window.escapeHtml(e)}</li>`).join('');
       errorBox.classList.remove('hidden');
     }
     if (resultSummary) resultSummary.classList.remove('hidden');
     window.showToast('Import job failed. Please inspect error log.', 'error');
-  }
+  },
 };
 
 window.ImportsController = ImportsController;

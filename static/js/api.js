@@ -3,19 +3,34 @@
  * Centralized API client service for sentiment analysis and customer feedback intelligence.
  */
 
+let lastColdStartNotice = 0;
+function showColdStartNotice() {
+  const now = Date.now();
+  if (now - lastColdStartNotice > 5000) {
+    lastColdStartNotice = now;
+    if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
+      window.showToast('Server is waking up (~50s), retrying…', 'info');
+    }
+  }
+}
+
 const API = {
   /**
-   * Core request dispatcher with automatic error parsing and 401 redirect handling
+   * Core request dispatcher with automatic error parsing and cold-start retry handling
    */
   async request(endpoint, options = {}) {
     const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    
+    const retryCount = options._retryCount || 0;
+    const maxRetries = options.maxRetries !== undefined ? options.maxRetries : 3;
+    const retryDelay = options.retryDelayMs !== undefined ? options.retryDelayMs : 3000;
+    const timeoutMs = options.timeoutMs !== undefined ? options.timeoutMs : 60000;
+
     const config = {
       ...options,
       headers: {
-        'Accept': 'application/json',
-        ...(options.headers || {})
-      }
+        Accept: 'application/json',
+        ...(options.headers || {}),
+      },
     };
 
     // If body is an object and not FormData, serialize to JSON
@@ -24,11 +39,35 @@ const API = {
       config.body = JSON.stringify(config.body);
     }
 
+    const controller =
+      typeof AbortController !== 'undefined' && !options.signal ? new AbortController() : null;
+    let timerId = null;
+
+    if (controller) {
+      config.signal = controller.signal;
+      timerId = setTimeout(() => {
+        controller.abort(new Error('timeout'));
+      }, timeoutMs);
+    }
+
     try {
       const response = await fetch(url, config);
+      if (timerId) clearTimeout(timerId);
+
+      // Handle Render cold starts (502 / 503 while booting server)
+      if (response.status === 502 || response.status === 503) {
+        if (retryCount < maxRetries) {
+          showColdStartNotice();
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
+          return this.request(endpoint, {
+            ...options,
+            _retryCount: retryCount + 1,
+          });
+        }
+      }
+
       const requestId = response.headers.get('X-Request-ID');
       const processTime = response.headers.get('X-Process-Time');
-
 
       // Handle raw non-JSON responses (e.g. CSV exports, HTML fallbacks)
       const contentType = response.headers.get('content-type') || '';
@@ -53,7 +92,7 @@ const API = {
         } else if (typeof data === 'string' && data.trim()) {
           errorMsg = data;
         }
-        
+
         const error = new Error(errorMsg);
         error.status = response.status;
         error.requestId = requestId;
@@ -63,26 +102,43 @@ const API = {
 
       return data;
     } catch (err) {
+      if (timerId) clearTimeout(timerId);
+
+      const isTimeout =
+        err.name === 'AbortError' ||
+        err.name === 'TimeoutError' ||
+        (err.message && (err.message.includes('timeout') || err.message.includes('timed out')));
+
+      if (isTimeout && retryCount < maxRetries) {
+        showColdStartNotice();
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
+        return this.request(endpoint, {
+          ...options,
+          _retryCount: retryCount + 1,
+        });
+      }
+
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        throw new Error('Network error: Unable to connect to server. Please check your internet connection.');
+        throw new Error(
+          'Network error: Unable to connect to server. Please check your internet connection.'
+        );
       }
       throw err;
     }
   },
 
-
   // Prediction Endpoints
   async predict(text) {
     return this.request('/predict', {
       method: 'POST',
-      body: { text }
+      body: { text },
     });
   },
 
   async predictBatch(texts) {
     return this.request('/predict/batch', {
       method: 'POST',
-      body: { texts }
+      body: { texts },
     });
   },
 
@@ -90,7 +146,7 @@ const API = {
   async createFeedback(payload) {
     return this.request('/feedback', {
       method: 'POST',
-      body: payload
+      body: payload,
     });
   },
 
@@ -111,7 +167,7 @@ const API = {
 
   async deleteFeedback(id) {
     return this.request(`/feedback/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     });
   },
 
@@ -133,7 +189,7 @@ const API = {
     formData.append('file', file);
     return this.request('/feedback/import', {
       method: 'POST',
-      body: formData
+      body: formData,
     });
   },
 
@@ -160,7 +216,7 @@ const API = {
 
   async checkReadiness() {
     return this.request('/health/ready');
-  }
+  },
 };
 
 window.api = API;

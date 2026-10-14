@@ -141,7 +141,26 @@ pytest -v
 python check_handwritten.py
 ```
 
+### Frontend Unit Testing & Code Quality
+
+Frontend logic is zero-build browser ES modules. Pure helpers (formatters, batch chunker) and API cold-start resilience are tested using Node.js's built-in test runner (`node --test`), requiring zero test framework dependencies.
+
+```bash
+# Run frontend unit tests (Node built-in test runner)
+npm test
+
+# Run ESLint across static modules and tests
+npm run lint
+
+# Check code formatting with Prettier
+npm run format:check
+
+# Auto-format frontend code
+npm run format
+```
+
 ---
+
 
 ## 📚 API Reference
 

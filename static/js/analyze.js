@@ -39,7 +39,7 @@ const AnalyzeController = {
       });
     }
 
-    sampleBtns.forEach(btn => {
+    sampleBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
         const sampleText = btn.getAttribute('data-sample');
         if (textInput && sampleText) {
@@ -111,7 +111,7 @@ const AnalyzeController = {
           text,
           category: category || null,
           source: source || 'web',
-          rating: rating || null
+          rating: rating || null,
         });
         window.showToast(`Feedback saved to database (#${result.id})!`, 'success');
         // Notify other components to refresh their state
@@ -160,10 +160,12 @@ const AnalyzeController = {
     if (savedTagEl) {
       if (wasSaved && data.id) {
         savedTagEl.textContent = `Persisted (ID #${data.id})`;
-        savedTagEl.className = 'text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+        savedTagEl.className =
+          'text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
       } else {
         savedTagEl.textContent = 'Ephemeral Prediction (Not Saved)';
-        savedTagEl.className = 'text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-500 border border-slate-500/20';
+        savedTagEl.className =
+          'text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-500 border border-slate-500/20';
       }
     }
 
@@ -174,17 +176,24 @@ const AnalyzeController = {
 
     // Reset styles
     if (sentimentHero) {
-      sentimentHero.className = 'p-6 rounded-2xl text-center border transition-all duration-300 flex flex-col items-center justify-center';
+      sentimentHero.className =
+        'p-6 rounded-2xl text-center border transition-all duration-300 flex flex-col items-center justify-center';
     }
 
     if (sentiment === 'positive') {
       if (emojiEl) emojiEl.textContent = '🌟';
       if (labelEl) {
         labelEl.textContent = 'POSITIVE SENTIMENT';
-        labelEl.className = 'text-xl font-bold font-display uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1';
+        labelEl.className =
+          'text-xl font-bold font-display uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1';
       }
       if (sentimentHero) {
-        sentimentHero.classList.add('bg-emerald-50', 'dark:bg-emerald-500/10', 'border-emerald-200', 'dark:border-emerald-500/30');
+        sentimentHero.classList.add(
+          'bg-emerald-50',
+          'dark:bg-emerald-500/10',
+          'border-emerald-200',
+          'dark:border-emerald-500/30'
+        );
       }
       if (explanationEl) {
         explanationEl.textContent = `The model detected strong satisfaction and positive brand affinity with ${confPct}% confidence.`;
@@ -193,10 +202,16 @@ const AnalyzeController = {
       if (emojiEl) emojiEl.textContent = '⚖️';
       if (labelEl) {
         labelEl.textContent = 'NEUTRAL / FACTUAL';
-        labelEl.className = 'text-xl font-bold font-display uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-1';
+        labelEl.className =
+          'text-xl font-bold font-display uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-1';
       }
       if (sentimentHero) {
-        sentimentHero.classList.add('bg-blue-50', 'dark:bg-blue-500/10', 'border-blue-200', 'dark:border-blue-500/30');
+        sentimentHero.classList.add(
+          'bg-blue-50',
+          'dark:bg-blue-500/10',
+          'border-blue-200',
+          'dark:border-blue-500/30'
+        );
       }
       if (explanationEl) {
         explanationEl.textContent = `The feedback appears objective, transactional, or balanced without strong emotional polarity.`;
@@ -205,10 +220,16 @@ const AnalyzeController = {
       if (emojiEl) emojiEl.textContent = '🚨';
       if (labelEl) {
         labelEl.textContent = 'NEGATIVE SENTIMENT';
-        labelEl.className = 'text-xl font-bold font-display uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1';
+        labelEl.className =
+          'text-xl font-bold font-display uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1';
       }
       if (sentimentHero) {
-        sentimentHero.classList.add('bg-rose-50', 'dark:bg-rose-500/10', 'border-rose-200', 'dark:border-rose-500/30');
+        sentimentHero.classList.add(
+          'bg-rose-50',
+          'dark:bg-rose-500/10',
+          'border-rose-200',
+          'dark:border-rose-500/30'
+        );
       }
       if (explanationEl) {
         explanationEl.textContent = `High risk of customer dissatisfaction or churn detected with ${confPct}% model confidence. Consider follow-up.`;
@@ -217,10 +238,16 @@ const AnalyzeController = {
       if (emojiEl) emojiEl.textContent = '⚠️';
       if (labelEl) {
         labelEl.textContent = 'UNRECOGNIZED / GIBBERISH';
-        labelEl.className = 'text-xl font-bold font-display uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1';
+        labelEl.className =
+          'text-xl font-bold font-display uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1';
       }
       if (sentimentHero) {
-        sentimentHero.classList.add('bg-slate-100', 'dark:bg-slate-800', 'border-slate-300', 'dark:border-slate-700');
+        sentimentHero.classList.add(
+          'bg-slate-100',
+          'dark:bg-slate-800',
+          'border-slate-300',
+          'dark:border-slate-700'
+        );
       }
       if (explanationEl) {
         explanationEl.textContent = `Text appears fragmented, ambiguous, or gibberish. The heuristic validation caught this pattern.`;
@@ -247,7 +274,7 @@ const AnalyzeController = {
     if (rawJsonEl) {
       rawJsonEl.textContent = JSON.stringify(data, null, 2);
     }
-  }
+  },
 };
 
 window.AnalyzeController = AnalyzeController;

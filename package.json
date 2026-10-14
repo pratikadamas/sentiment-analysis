@@ -1,0 +1,18 @@
+{
+  "name": "sentiment-pulse-frontend",
+  "version": "1.0.0",
+  "description": "Sentiment Pulse Frontend",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/frontend/**/*.test.js",
+    "lint": "eslint static/ tests/frontend/",
+    "lint:fix": "eslint static/ tests/frontend/ --fix",
+    "format": "prettier --write \"static/**/*.js\" \"tests/frontend/**/*.js\"",
+    "format:check": "prettier --check \"static/**/*.js\" \"tests/frontend/**/*.js\""
+  },
+  "devDependencies": {
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10"
+  }
+}

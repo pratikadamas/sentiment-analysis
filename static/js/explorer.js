@@ -34,7 +34,7 @@ const ExplorerController = {
       });
     }
 
-    [sentimentFilter, categoryFilter, sourceFilter, sortSelect].forEach(el => {
+    [sentimentFilter, categoryFilter, sourceFilter, sortSelect].forEach((el) => {
       if (el) {
         el.addEventListener('change', () => {
           this.currentPage = 1;
@@ -109,7 +109,7 @@ const ExplorerController = {
         category,
         source,
         sort_by,
-        sort_order
+        sort_order,
       });
 
       const { items, total, page, total_pages } = response;
@@ -155,14 +155,13 @@ const ExplorerController = {
 
       // Render Desktop Rows
       if (tableBody) {
-        tableBody.innerHTML = items.map(item => this.renderTableRow(item)).join('');
+        tableBody.innerHTML = items.map((item) => this.renderTableRow(item)).join('');
       }
 
       // Render Mobile Cards
       if (mobileContainer) {
-        mobileContainer.innerHTML = items.map(item => this.renderMobileCard(item)).join('');
+        mobileContainer.innerHTML = items.map((item) => this.renderMobileCard(item)).join('');
       }
-
     } catch (err) {
       console.error('Failed to load feedback records:', err);
       window.showToast(err.message || 'Error loading feedback table.', 'error');
@@ -268,7 +267,10 @@ const ExplorerController = {
       setText('detail-modal-source', data.source || 'web');
       setText('detail-modal-rating', data.rating ? `${data.rating} / 5 Stars` : 'Unrated');
       setText('detail-modal-version', data.model_version || '3.0.0');
-      setText('detail-modal-date', data.created_at ? new Date(data.created_at).toLocaleString() : '—');
+      setText(
+        'detail-modal-date',
+        data.created_at ? new Date(data.created_at).toLocaleString() : '—'
+      );
 
       const scores = data.scores || {};
       const posPct = ((scores.positive || 0) * 100).toFixed(1);
@@ -312,7 +314,7 @@ const ExplorerController = {
         }
       }
     );
-  }
+  },
 };
 
 window.ExplorerController = ExplorerController;

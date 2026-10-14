@@ -23,3 +23,7 @@ Thumbs.db
 
 # Training data
 data/*.csv
+
+# Node dependencies and artifacts
+node_modules/
+.eslintcache

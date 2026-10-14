@@ -19,7 +19,7 @@ const OverviewController = {
       this.setLoading(true);
       const [stats, analytics] = await Promise.all([
         window.api.getStats().catch(() => null),
-        window.api.getAnalytics().catch(() => null)
+        window.api.getAnalytics().catch(() => null),
       ]);
 
       this.renderKPIs(stats, analytics);
@@ -37,7 +37,7 @@ const OverviewController = {
 
   setLoading(isLoading) {
     const kpiElements = document.querySelectorAll('.overview-kpi-val');
-    kpiElements.forEach(el => {
+    kpiElements.forEach((el) => {
       if (isLoading) {
         el.classList.add('opacity-40');
       } else {
@@ -46,7 +46,7 @@ const OverviewController = {
     });
   },
 
-  renderKPIs(stats, analytics) {
+  renderKPIs(stats, _analytics) {
     const total = stats ? stats.total_count : 0;
     const pos = stats ? stats.positive_count : 0;
     const neu = stats ? stats.neutral_count : 0;
@@ -110,15 +110,17 @@ const OverviewController = {
       return;
     }
 
-    listContainer.innerHTML = items.slice(0, 5).map(item => {
-      const confPct = (item.confidence * 100).toFixed(1);
-      const catBadge = item.category 
-        ? `<span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-medium border border-slate-200 dark:border-slate-700">${window.escapeHtml(item.category)}</span>` 
-        : '';
-      const ratingStars = item.rating ? `⭐ ${item.rating}/5` : '';
-      const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString() : '';
+    listContainer.innerHTML = items
+      .slice(0, 5)
+      .map((item) => {
+        const confPct = (item.confidence * 100).toFixed(1);
+        const catBadge = item.category
+          ? `<span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-medium border border-slate-200 dark:border-slate-700">${window.escapeHtml(item.category)}</span>`
+          : '';
+        const ratingStars = item.rating ? `⭐ ${item.rating}/5` : '';
+        const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString() : '';
 
-      return `
+        return `
         <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/90 dark:border-slate-800/80 hover:border-rose-300 dark:hover:border-rose-900/40 transition-colors">
           <div class="flex items-start justify-between gap-3 mb-1.5">
             <span class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold badge-negative">
@@ -137,7 +139,8 @@ const OverviewController = {
           </div>
         </div>
       `;
-    }).join('');
+      })
+      .join('');
   },
 
   renderCategoryBreakdown(categories) {
@@ -149,8 +152,10 @@ const OverviewController = {
       return;
     }
 
-    container.innerHTML = categories.slice(0, 5).map(cat => {
-      return `
+    container.innerHTML = categories
+      .slice(0, 5)
+      .map((cat) => {
+        return `
         <div class="space-y-1.5">
           <div class="flex justify-between text-xs font-medium text-slate-700 dark:text-slate-300">
             <span>${window.escapeHtml(cat.category)}</span>
@@ -163,7 +168,8 @@ const OverviewController = {
           </div>
         </div>
       `;
-    }).join('');
+      })
+      .join('');
   },
 
   renderSourceBreakdown(sources) {
@@ -175,8 +181,10 @@ const OverviewController = {
       return;
     }
 
-    container.innerHTML = sources.slice(0, 5).map(src => {
-      return `
+    container.innerHTML = sources
+      .slice(0, 5)
+      .map((src) => {
+        return `
         <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs">
           <div class="flex items-center space-x-2">
             <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
@@ -185,8 +193,9 @@ const OverviewController = {
           <span class="font-mono text-slate-600 dark:text-slate-400 text-[11px] font-semibold">${src.total} items</span>
         </div>
       `;
-    }).join('');
-  }
+      })
+      .join('');
+  },
 };
 
 window.OverviewController = OverviewController;

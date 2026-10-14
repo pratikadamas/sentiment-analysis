@@ -18,7 +18,9 @@ function toggleTheme() {
 
   localStorage.setItem('theme', nextTheme);
   syncThemeToggleIcons(nextTheme === 'dark');
-  window.dispatchEvent(new CustomEvent('theme-changed', { detail: { isDark: nextTheme === 'dark', theme: nextTheme } }));
+  window.dispatchEvent(
+    new CustomEvent('theme-changed', { detail: { isDark: nextTheme === 'dark', theme: nextTheme } })
+  );
 }
 
 // Synchronize any theme toggle buttons on the page with current theme state
@@ -28,7 +30,7 @@ function syncThemeToggleIcons(isDark) {
     return;
   }
 
-  toggleButtons.forEach(btn => {
+  toggleButtons.forEach((btn) => {
     btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
     btn.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode');
 
@@ -37,11 +39,11 @@ function syncThemeToggleIcons(isDark) {
     // Moon icon (shown in light mode to switch to dark)
     const moonIcons = btn.querySelectorAll('.theme-icon-moon');
 
-    sunIcons.forEach(icon => {
+    sunIcons.forEach((icon) => {
       icon.classList.toggle('hidden', !isDark);
     });
 
-    moonIcons.forEach(icon => {
+    moonIcons.forEach((icon) => {
       icon.classList.toggle('hidden', isDark);
     });
   });
@@ -49,7 +51,7 @@ function syncThemeToggleIcons(isDark) {
 
 // Listen for OS system theme changes when user has no stored preference
 if (window.matchMedia) {
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
     if (!localStorage.getItem('theme')) {
       if (e.matches) {
         document.documentElement.classList.add('dark');
@@ -69,7 +71,7 @@ function initThemeUI() {
     const isDark = document.documentElement.classList.contains('dark');
     syncThemeToggleIcons(isDark);
 
-    toggleButtons.forEach(btn => {
+    toggleButtons.forEach((btn) => {
       btn.removeEventListener('click', toggleTheme);
       btn.addEventListener('click', toggleTheme);
     });
@@ -82,7 +84,7 @@ window.initThemeUI = initThemeUI;
 window.themeManager = {
   toggle: toggleTheme,
   init: initThemeUI,
-  isDark: () => document.documentElement.classList.contains('dark')
+  isDark: () => document.documentElement.classList.contains('dark'),
 };
 
 // Handle both uncompleted and already-completed DOM ready states

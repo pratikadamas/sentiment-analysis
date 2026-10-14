@@ -15,12 +15,24 @@ const AnalyticsController = {
 
   bindEvents() {
     const rangeBtns = document.querySelectorAll('.analytics-range-btn');
-    rangeBtns.forEach(btn => {
+    rangeBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
-        rangeBtns.forEach(b => b.classList.remove('bg-indigo-600', 'text-white'));
-        rangeBtns.forEach(b => b.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300'));
+        rangeBtns.forEach((b) => b.classList.remove('bg-indigo-600', 'text-white'));
+        rangeBtns.forEach((b) =>
+          b.classList.add(
+            'bg-slate-100',
+            'dark:bg-slate-800',
+            'text-slate-600',
+            'dark:text-slate-300'
+          )
+        );
         btn.classList.add('bg-indigo-600', 'text-white');
-        btn.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+        btn.classList.remove(
+          'bg-slate-100',
+          'dark:bg-slate-800',
+          'text-slate-600',
+          'dark:text-slate-300'
+        );
 
         this.currentRange = btn.getAttribute('data-range');
         this.loadAnalytics();
@@ -104,7 +116,7 @@ const AnalyticsController = {
       textColor: isDark ? '#94a3b8' : '#64748b',
       gridColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
       tooltipBg: isDark ? '#1e293b' : '#ffffff',
-      tooltipText: isDark ? '#f8fafc' : '#0f172a'
+      tooltipText: isDark ? '#f8fafc' : '#0f172a',
     };
   },
 
@@ -122,12 +134,21 @@ const AnalyticsController = {
       type: 'doughnut',
       data: {
         labels: ['Positive', 'Neutral', 'Negative', 'Unknown'],
-        datasets: [{
-          data: [counts.positive || 0, counts.neutral || 0, counts.negative || 0, counts.unknown || 0],
-          backgroundColor: ['#10b981', '#3b82f6', '#f43f5e', '#94a3b8'],
-          borderWidth: 2,
-          borderColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff'
-        }]
+        datasets: [
+          {
+            data: [
+              counts.positive || 0,
+              counts.neutral || 0,
+              counts.negative || 0,
+              counts.unknown || 0,
+            ],
+            backgroundColor: ['#10b981', '#3b82f6', '#f43f5e', '#94a3b8'],
+            borderWidth: 2,
+            borderColor: document.documentElement.classList.contains('dark')
+              ? '#111827'
+              : '#ffffff',
+          },
+        ],
       },
       options: {
         responsive: true,
@@ -135,11 +156,11 @@ const AnalyticsController = {
         plugins: {
           legend: {
             position: 'bottom',
-            labels: { color: textColor, font: { family: 'Inter', size: 11 } }
-          }
+            labels: { color: textColor, font: { family: 'Inter', size: 11 } },
+          },
         },
-        cutout: '68%'
-      }
+        cutout: '68%',
+      },
     });
   },
 
@@ -153,10 +174,10 @@ const AnalyticsController = {
 
     const { textColor, gridColor } = this.getThemeColors();
 
-    const labels = (trends || []).map(t => t.date);
-    const posData = (trends || []).map(t => t.positive);
-    const neuData = (trends || []).map(t => t.neutral);
-    const negData = (trends || []).map(t => t.negative);
+    const labels = (trends || []).map((t) => t.date);
+    const posData = (trends || []).map((t) => t.positive);
+    const neuData = (trends || []).map((t) => t.neutral);
+    const negData = (trends || []).map((t) => t.negative);
 
     this.charts.trends = new Chart(canvas, {
       type: 'bar',
@@ -165,8 +186,8 @@ const AnalyticsController = {
         datasets: [
           { label: 'Positive', data: posData, backgroundColor: '#10b981', stack: 'stack1' },
           { label: 'Neutral', data: neuData, backgroundColor: '#3b82f6', stack: 'stack1' },
-          { label: 'Negative', data: negData, backgroundColor: '#f43f5e', stack: 'stack1' }
-        ]
+          { label: 'Negative', data: negData, backgroundColor: '#f43f5e', stack: 'stack1' },
+        ],
       },
       options: {
         responsive: true,
@@ -175,21 +196,21 @@ const AnalyticsController = {
           x: {
             stacked: true,
             ticks: { color: textColor, font: { family: 'Inter', size: 10 } },
-            grid: { display: false }
+            grid: { display: false },
           },
           y: {
             stacked: true,
             ticks: { color: textColor, font: { family: 'Inter', size: 10 } },
-            grid: { color: gridColor }
-          }
+            grid: { color: gridColor },
+          },
         },
         plugins: {
           legend: {
             position: 'top',
-            labels: { color: textColor, font: { family: 'Inter', size: 11 } }
-          }
-        }
-      }
+            labels: { color: textColor, font: { family: 'Inter', size: 11 } },
+          },
+        },
+      },
     });
   },
 
@@ -204,9 +225,9 @@ const AnalyticsController = {
     const { textColor, gridColor } = this.getThemeColors();
 
     const topCats = (categories || []).slice(0, 6);
-    const labels = topCats.map(c => c.category);
-    const posData = topCats.map(c => c.positive);
-    const negData = topCats.map(c => c.negative);
+    const labels = topCats.map((c) => c.category);
+    const posData = topCats.map((c) => c.positive);
+    const negData = topCats.map((c) => c.negative);
 
     this.charts.categories = new Chart(canvas, {
       type: 'bar',
@@ -214,8 +235,8 @@ const AnalyticsController = {
         labels,
         datasets: [
           { label: 'Positive', data: posData, backgroundColor: '#10b981' },
-          { label: 'Negative', data: negData, backgroundColor: '#f43f5e' }
-        ]
+          { label: 'Negative', data: negData, backgroundColor: '#f43f5e' },
+        ],
       },
       options: {
         indexAxis: 'y',
@@ -224,20 +245,20 @@ const AnalyticsController = {
         scales: {
           x: {
             ticks: { color: textColor, font: { family: 'Inter', size: 10 } },
-            grid: { color: gridColor }
+            grid: { color: gridColor },
           },
           y: {
             ticks: { color: textColor, font: { family: 'Inter', size: 10 } },
-            grid: { display: false }
-          }
+            grid: { display: false },
+          },
         },
         plugins: {
           legend: {
             position: 'top',
-            labels: { color: textColor, font: { family: 'Inter', size: 11 } }
-          }
-        }
-      }
+            labels: { color: textColor, font: { family: 'Inter', size: 11 } },
+          },
+        },
+      },
     });
   },
 
@@ -252,18 +273,20 @@ const AnalyticsController = {
     const { textColor, gridColor } = this.getThemeColors();
 
     const topSources = (sources || []).slice(0, 5);
-    const labels = topSources.map(s => s.source.toUpperCase());
-    const data = topSources.map(s => s.total);
+    const labels = topSources.map((s) => s.source.toUpperCase());
+    const data = topSources.map((s) => s.total);
 
     this.charts.sources = new Chart(canvas, {
       type: 'bar',
       data: {
         labels,
-        datasets: [{
-          label: 'Total Reviews',
-          data,
-          backgroundColor: '#6366f1'
-        }]
+        datasets: [
+          {
+            label: 'Total Reviews',
+            data,
+            backgroundColor: '#6366f1',
+          },
+        ],
       },
       options: {
         responsive: true,
@@ -271,30 +294,37 @@ const AnalyticsController = {
         scales: {
           x: {
             ticks: { color: textColor, font: { family: 'Inter', size: 10 } },
-            grid: { display: false }
+            grid: { display: false },
           },
           y: {
             ticks: { color: textColor, font: { family: 'Inter', size: 10 } },
-            grid: { color: gridColor }
-          }
+            grid: { color: gridColor },
+          },
         },
         plugins: {
-          legend: { display: false }
-        }
-      }
+          legend: { display: false },
+        },
+      },
     });
   },
 
   updateChartThemes() {
     const { textColor, gridColor } = this.getThemeColors();
-    Object.values(this.charts).forEach(chart => {
+    Object.values(this.charts).forEach((chart) => {
       if (!chart) return;
       if (chart.options.scales) {
-        if (chart.options.scales.x && chart.options.scales.x.ticks) chart.options.scales.x.ticks.color = textColor;
-        if (chart.options.scales.y && chart.options.scales.y.ticks) chart.options.scales.y.ticks.color = textColor;
-        if (chart.options.scales.y && chart.options.scales.y.grid) chart.options.scales.y.grid.color = gridColor;
+        if (chart.options.scales.x && chart.options.scales.x.ticks)
+          chart.options.scales.x.ticks.color = textColor;
+        if (chart.options.scales.y && chart.options.scales.y.ticks)
+          chart.options.scales.y.ticks.color = textColor;
+        if (chart.options.scales.y && chart.options.scales.y.grid)
+          chart.options.scales.y.grid.color = gridColor;
       }
-      if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+      if (
+        chart.options.plugins &&
+        chart.options.plugins.legend &&
+        chart.options.plugins.legend.labels
+      ) {
         chart.options.plugins.legend.labels.color = textColor;
       }
       chart.update();
@@ -310,12 +340,16 @@ const AnalyticsController = {
       return;
     }
 
-    container.innerHTML = items.slice(0, 6).map(item => {
-      const confPct = ((item.confidence || 0) * 100).toFixed(1);
-      const cat = item.category ? `<span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">${window.escapeHtml(item.category)}</span>` : '';
-      const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString() : '';
+    container.innerHTML = items
+      .slice(0, 6)
+      .map((item) => {
+        const confPct = ((item.confidence || 0) * 100).toFixed(1);
+        const cat = item.category
+          ? `<span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">${window.escapeHtml(item.category)}</span>`
+          : '';
+        const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString() : '';
 
-      return `
+        return `
         <div class="p-3.5 rounded-xl saas-card hover:border-rose-300 dark:hover:border-rose-900/50 transition-colors space-y-1.5 text-xs">
           <div class="flex items-center justify-between text-[11px] text-slate-400">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full badge-negative font-semibold text-[10px]">
@@ -330,8 +364,9 @@ const AnalyticsController = {
           </div>
         </div>
       `;
-    }).join('');
-  }
+      })
+      .join('');
+  },
 };
 
 window.AnalyticsController = AnalyticsController;
