@@ -66,9 +66,11 @@ const AnalyzeController = {
 
   resetResults() {
     const emptyState = document.getElementById('analyze-empty-state');
+    const skeleton = document.getElementById('analyze-skeleton');
     const activeResults = document.getElementById('analyze-active-results');
-    if (emptyState) emptyState.classList.remove('hidden');
+    if (skeleton) skeleton.classList.add('hidden');
     if (activeResults) activeResults.classList.add('hidden');
+    if (emptyState) emptyState.classList.remove('hidden');
   },
 
   async executeAnalysis() {
@@ -96,10 +98,17 @@ const AnalyzeController = {
     let rating = ratingInput && ratingInput.value ? parseInt(ratingInput.value, 10) : null;
     if (rating && (rating < 1 || rating > 5)) rating = null;
 
-    // Set loading state
+    // Set loading state (button spinner for submit feedback + card skeleton for data visualization)
     if (submitBtn) submitBtn.disabled = true;
     if (btnSpinner) btnSpinner.classList.remove('hidden');
     if (btnText) btnText.textContent = shouldSave ? 'Analyzing & Saving...' : 'Analyzing...';
+
+    const skeleton = document.getElementById('analyze-skeleton');
+    const emptyState = document.getElementById('analyze-empty-state');
+    const activeResults = document.getElementById('analyze-active-results');
+    if (emptyState) emptyState.classList.add('hidden');
+    if (activeResults) activeResults.classList.add('hidden');
+    if (skeleton) skeleton.classList.remove('hidden');
 
     const t0 = performance.now();
 
@@ -126,6 +135,8 @@ const AnalyzeController = {
       this.displayResults(result, elapsed, shouldSave);
     } catch (err) {
       console.error('Inference error:', err);
+      if (skeleton) skeleton.classList.add('hidden');
+      if (emptyState) emptyState.classList.remove('hidden');
       window.showToast(err.message || 'Sentiment analysis failed.', 'error');
     } finally {
       if (submitBtn) submitBtn.disabled = false;
@@ -136,6 +147,7 @@ const AnalyzeController = {
 
   displayResults(data, elapsedMs, wasSaved) {
     const emptyState = document.getElementById('analyze-empty-state');
+    const skeleton = document.getElementById('analyze-skeleton');
     const activeResults = document.getElementById('analyze-active-results');
     const sentimentHero = document.getElementById('analyze-sentiment-hero');
     const emojiEl = document.getElementById('analyze-sentiment-emoji');
@@ -153,6 +165,7 @@ const AnalyzeController = {
     const pctNeu = document.getElementById('analyze-pct-neu');
     const pctNeg = document.getElementById('analyze-pct-neg');
 
+    if (skeleton) skeleton.classList.add('hidden');
     if (emptyState) emptyState.classList.add('hidden');
     if (activeResults) activeResults.classList.remove('hidden');
 

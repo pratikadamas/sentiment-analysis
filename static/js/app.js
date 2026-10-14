@@ -30,22 +30,31 @@ window.showToast = function (message, type = 'info') {
   let icon = 'ℹ️';
   let colors = 'bg-slate-900 text-white border-slate-800';
 
-  if (type === 'success') {
-    icon = '✅';
-    colors = 'bg-emerald-950 text-emerald-200 border-emerald-800';
-  } else if (type === 'error') {
+  if (type === 'error') {
     icon = '❌';
     colors = 'bg-rose-950 text-rose-200 border-rose-800';
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+  } else if (type === 'success') {
+    icon = '✅';
+    colors = 'bg-emerald-950 text-emerald-200 border-emerald-800';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
   } else if (type === 'warning') {
     icon = '⚠️';
     colors = 'bg-amber-950 text-amber-200 border-amber-800';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+  } else {
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
   }
 
   toast.className += ` ${colors}`;
   toast.innerHTML = `
-    <span>${icon}</span>
+    <span aria-hidden="true">${icon}</span>
     <span class="flex-1">${window.escapeHtml(message)}</span>
-    <button class="opacity-60 hover:opacity-100 ml-2 text-base font-bold">&times;</button>
+    <button aria-label="Dismiss notification" class="opacity-60 hover:opacity-100 ml-2 text-base font-bold p-1 rounded focus:outline-none focus:ring-1 focus:ring-white">&times;</button>
   `;
 
   toast.querySelector('button').addEventListener('click', () => {
@@ -61,8 +70,13 @@ window.showToast = function (message, type = 'info') {
   }, 4000);
 };
 
-// Global Utility: Confirmation Modal
-window.showConfirm = function (title, message, onConfirm) {
+// Global Utility: Confirmation Modal with Accessible Focus Trap
+window.showConfirm = function (
+  title,
+  message,
+  onConfirm,
+  returnFocusEl = typeof document !== 'undefined' ? document.activeElement : null
+) {
   const modal = document.getElementById('global-confirm-modal');
   const titleEl = document.getElementById('confirm-modal-title');
   const msgEl = document.getElementById('confirm-modal-message');
@@ -79,11 +93,28 @@ window.showConfirm = function (title, message, onConfirm) {
 
   modal.classList.remove('hidden');
 
+  let trap = null;
   const cleanup = () => {
     modal.classList.add('hidden');
     confirmBtn.onclick = null;
     cancelBtn.onclick = null;
+    modal.onclick = null;
+    if (trap) {
+      trap.deactivate();
+      trap = null;
+    }
   };
+
+  if (window.ModalHelper && typeof window.ModalHelper.createFocusTrap === 'function') {
+    trap = window.ModalHelper.createFocusTrap(modal, {
+      onEscape: cleanup,
+      returnFocusEl,
+      initialFocusEl: cancelBtn,
+    });
+    trap.activate();
+  } else if (cancelBtn) {
+    cancelBtn.focus();
+  }
 
   confirmBtn.onclick = () => {
     cleanup();
@@ -91,6 +122,9 @@ window.showConfirm = function (title, message, onConfirm) {
   };
 
   cancelBtn.onclick = cleanup;
+  modal.onclick = (e) => {
+    if (e.target === modal) cleanup();
+  };
 };
 
 // View Routing State
@@ -180,6 +214,7 @@ const App = {
       const isSelected = target === viewName;
 
       if (isSelected) {
+        link.setAttribute('aria-current', 'page');
         link.classList.add(
           'bg-indigo-50',
           'text-indigo-600',
@@ -189,6 +224,7 @@ const App = {
         );
         link.classList.remove('text-slate-600', 'dark:text-slate-400');
       } else {
+        link.removeAttribute('aria-current');
         link.classList.remove(
           'bg-indigo-50',
           'text-indigo-600',

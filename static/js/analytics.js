@@ -65,11 +65,18 @@ const AnalyticsController = {
 
   async loadAnalytics() {
     const emptyState = document.getElementById('analytics-empty-state');
+    const skeletonView = document.getElementById('analytics-skeleton-view');
     const content = document.getElementById('analytics-content-view');
+
+    if (emptyState) emptyState.classList.add('hidden');
+    if (content) content.classList.add('hidden');
+    if (skeletonView) skeletonView.classList.remove('hidden');
 
     try {
       const filters = this.getDateFilters();
       const data = await window.api.getAnalytics(filters);
+
+      if (skeletonView) skeletonView.classList.add('hidden');
 
       if (!data || data.total_feedback === 0) {
         if (emptyState) emptyState.classList.remove('hidden');
@@ -93,6 +100,9 @@ const AnalyticsController = {
       this.renderNegativeDeepDive(data.recent_negative_feedback);
     } catch (err) {
       console.error('Analytics load error:', err);
+      if (skeletonView) skeletonView.classList.add('hidden');
+      if (content) content.classList.add('hidden');
+      if (emptyState) emptyState.classList.remove('hidden');
       window.showToast(err.message || 'Failed to load analytics.', 'error');
     }
   },

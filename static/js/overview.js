@@ -39,11 +39,27 @@ const OverviewController = {
     const kpiElements = document.querySelectorAll('.overview-kpi-val');
     kpiElements.forEach((el) => {
       if (isLoading) {
-        el.classList.add('opacity-40');
+        el.classList.add('skeleton', 'text-transparent', 'rounded-md');
       } else {
-        el.classList.remove('opacity-40');
+        el.classList.remove('skeleton', 'text-transparent', 'rounded-md');
       }
     });
+
+    const listContainer = document.getElementById('overview-negatives-list');
+    if (listContainer && isLoading) {
+      listContainer.innerHTML = `
+        <div class="space-y-3 py-2" aria-busy="true" aria-label="Loading negative feedback alerts">
+          <div class="p-3 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
+            <div class="h-3.5 w-3/4 rounded skeleton"></div>
+            <div class="h-2.5 w-1/3 rounded skeleton"></div>
+          </div>
+          <div class="p-3 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
+            <div class="h-3.5 w-2/3 rounded skeleton"></div>
+            <div class="h-2.5 w-1/4 rounded skeleton"></div>
+          </div>
+        </div>
+      `;
+    }
   },
 
   renderKPIs(stats, _analytics) {

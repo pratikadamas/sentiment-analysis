@@ -54,8 +54,13 @@
 </head>
 <body class="bg-slate-50 dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 min-h-screen flex flex-col lg:flex-row font-sans transition-colors duration-150">
 
-  <!-- Toast Notification Container -->
-  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2.5 pointer-events-none"></div>
+  <!-- Accessible Skip to Content Link -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-indigo-600 focus:text-white focus:rounded-xl focus:shadow-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:font-medium focus:text-xs">
+    Skip to content
+  </a>
+
+  <!-- Toast Notification Container (ARIA Live Region) -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2.5 pointer-events-none" aria-live="polite" aria-atomic="false"></div>
 
   <!-- Mobile Top Header Bar -->
   <header class="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-[#111827] border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30">
@@ -92,7 +97,7 @@
     </div>
 
     <!-- Mobile Navigation Links -->
-    <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+    <nav aria-label="Mobile Navigation" class="flex-1 p-4 space-y-1 overflow-y-auto">
       <a href="#overview" data-view="overview" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
         <span class="text-base">📊</span>
         <span>Overview</span>
@@ -141,7 +146,7 @@
     </div>
 
     <!-- Navigation Section -->
-    <div class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+    <nav aria-label="Main Navigation" class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
       <div class="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Main Platform</div>
       
       <a href="#overview" data-view="overview" class="nav-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
@@ -186,7 +191,7 @@
         </span>
         <span class="text-[10px] text-emerald-500 font-mono">Live</span>
       </a>
-    </div>
+    </nav>
 
     <!-- Desktop Sidebar Footer -->
     <div class="p-3 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2">
@@ -218,7 +223,7 @@
   </aside>
 
   <!-- Main Viewport Content Container -->
-  <main class="flex-1 min-w-0 px-4 sm:px-8 py-6 max-w-7xl mx-auto w-full">
+  <main id="main-content" tabindex="-1" class="flex-1 min-w-0 px-4 sm:px-8 py-6 max-w-7xl mx-auto w-full outline-none">
 
     <!-- ===================================================================== -->
     <!-- VIEW 1: OVERVIEW DASHBOARD                                            -->
@@ -502,6 +507,28 @@
               <p class="text-[11px] text-slate-400 max-w-xs mx-auto">Submit feedback on the left to inspect prediction class, confidence breakdown, and explanation.</p>
             </div>
 
+            <!-- Skeleton Loader for Analyze Result -->
+            <div id="analyze-skeleton" class="hidden space-y-5" aria-busy="true" aria-label="Loading sentiment analysis result">
+              <div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center space-y-3">
+                <div class="w-14 h-14 rounded-full skeleton"></div>
+                <div class="w-32 h-6 rounded-lg skeleton"></div>
+                <div class="w-24 h-4 rounded-md skeleton"></div>
+              </div>
+              <div class="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-2">
+                <div class="w-28 h-3.5 rounded skeleton"></div>
+                <div class="w-full h-3 rounded skeleton"></div>
+                <div class="w-4/5 h-3 rounded skeleton"></div>
+              </div>
+              <div class="space-y-3 pt-2">
+                <div class="w-36 h-3 rounded skeleton"></div>
+                <div class="space-y-2">
+                  <div class="h-2 rounded-full skeleton"></div>
+                  <div class="h-2 rounded-full skeleton"></div>
+                  <div class="h-2 rounded-full skeleton"></div>
+                </div>
+              </div>
+            </div>
+
             <!-- Active Result Output -->
             <div id="analyze-active-results" class="hidden space-y-5">
               
@@ -730,6 +757,55 @@
         <p class="text-[11px] text-slate-400 mt-1">Please ingest feedback to see historical sentiment trends.</p>
       </div>
 
+      <!-- Analytics Skeletons -->
+      <div id="analytics-skeleton-view" class="hidden space-y-6" aria-busy="true" aria-label="Loading analytics charts">
+        <!-- Summary Metric Pills Skeleton -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div class="saas-card p-3.5 text-center space-y-2">
+            <div class="h-2.5 w-16 mx-auto rounded skeleton"></div>
+            <div class="h-6 w-12 mx-auto rounded skeleton"></div>
+          </div>
+          <div class="saas-card p-3.5 text-center space-y-2">
+            <div class="h-2.5 w-16 mx-auto rounded skeleton"></div>
+            <div class="h-6 w-12 mx-auto rounded skeleton"></div>
+          </div>
+          <div class="saas-card p-3.5 text-center space-y-2">
+            <div class="h-2.5 w-16 mx-auto rounded skeleton"></div>
+            <div class="h-6 w-12 mx-auto rounded skeleton"></div>
+          </div>
+          <div class="saas-card p-3.5 text-center space-y-2">
+            <div class="h-2.5 w-16 mx-auto rounded skeleton"></div>
+            <div class="h-6 w-12 mx-auto rounded skeleton"></div>
+          </div>
+          <div class="saas-card p-3.5 text-center space-y-2 col-span-2 sm:col-span-1">
+            <div class="h-2.5 w-16 mx-auto rounded skeleton"></div>
+            <div class="h-6 w-12 mx-auto rounded skeleton"></div>
+          </div>
+        </div>
+        <!-- Charts Grid 1 Skeleton -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-8 saas-card p-5 space-y-3">
+            <div class="h-3 w-40 rounded skeleton"></div>
+            <div class="h-64 rounded-xl skeleton"></div>
+          </div>
+          <div class="lg:col-span-4 saas-card p-5 space-y-3">
+            <div class="h-3 w-32 rounded skeleton"></div>
+            <div class="h-64 rounded-xl skeleton"></div>
+          </div>
+        </div>
+        <!-- Charts Grid 2 Skeleton -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-6 saas-card p-5 space-y-3">
+            <div class="h-3 w-36 rounded skeleton"></div>
+            <div class="h-60 rounded-xl skeleton"></div>
+          </div>
+          <div class="lg:col-span-6 saas-card p-5 space-y-3">
+            <div class="h-3 w-44 rounded skeleton"></div>
+            <div class="h-60 rounded-xl skeleton"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- Analytics Visualizations -->
       <div id="analytics-content-view" class="space-y-6">
         
@@ -944,14 +1020,15 @@
   <!-- ===================================================================== -->
 
   <!-- Feedback Record Detail Modal -->
-  <div id="feedback-detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="saas-card max-w-lg w-full p-6 space-y-4 shadow-2xl animate-scale-up">
+  <div id="feedback-detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title">
+    <div class="saas-card max-w-lg w-full p-6 space-y-4 shadow-2xl animate-scale-up" role="document">
       <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
         <div class="flex items-center space-x-2">
+          <h2 id="detail-modal-title" class="sr-only">Feedback Record Details</h2>
           <span class="font-mono text-xs text-slate-400 font-bold" id="detail-modal-id">#0</span>
           <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" id="detail-modal-sentiment">POSITIVE</span>
         </div>
-        <button id="detail-modal-close" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-lg font-bold">&times;</button>
+        <button id="detail-modal-close" aria-label="Close feedback detail dialog" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-lg font-bold p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">&times;</button>
       </div>
 
       <div class="space-y-3 text-xs">
@@ -1002,25 +1079,28 @@
       </div>
 
       <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end space-x-2">
-        <button id="detail-modal-delete-btn" class="px-3.5 py-1.5 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-medium">Delete Record</button>
+        <button id="detail-modal-delete-btn" aria-label="Delete this feedback record" class="px-3.5 py-1.5 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-rose-500">Delete Record</button>
       </div>
     </div>
   </div>
 
   <!-- Global Confirm Delete Modal -->
-  <div id="global-confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="saas-card max-w-sm w-full p-6 space-y-4 shadow-2xl">
-      <div class="text-2xl mb-1">⚠️</div>
+  <div id="global-confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message">
+    <div class="saas-card max-w-sm w-full p-6 space-y-4 shadow-2xl" role="document">
+      <div class="text-2xl mb-1" aria-hidden="true">⚠️</div>
       <h3 id="confirm-modal-title" class="text-sm font-bold text-slate-900 dark:text-white">Confirm Action</h3>
       <p id="confirm-modal-message" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed"></p>
       <div class="flex justify-end space-x-2 pt-2">
-        <button id="confirm-modal-cancel" class="px-3 py-1.5 rounded-xl saas-card text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800">Cancel</button>
-        <button id="confirm-modal-btn" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium">Confirm Delete</button>
+        <button id="confirm-modal-cancel" aria-label="Cancel and close dialog" class="px-3 py-1.5 rounded-xl saas-card text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">Cancel</button>
+        <button id="confirm-modal-btn" aria-label="Confirm permanent delete" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-rose-500">Confirm Delete</button>
       </div>
     </div>
   </div>
 
   <!-- Application Modular Scripts -->
+  <script src="/static/js/lib/formatters.js"></script>
+  <script src="/static/js/lib/chunker.js"></script>
+  <script src="/static/js/lib/modal.js"></script>
   <script src="/static/js/api.js"></script>
   <script src="/static/js/overview.js"></script>
   <script src="/static/js/analyze.js"></script>

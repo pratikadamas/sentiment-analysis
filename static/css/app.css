@@ -10,8 +10,27 @@
 
 /* Accessible Focus Indicators */
 :focus-visible {
-  outline: 2px solid #6366f1;
-  outline-offset: 2px;
+  outline: 2px solid #6366f1 !important;
+  outline-offset: 2px !important;
+}
+
+.dark :focus-visible {
+  outline: 2px solid #818cf8 !important;
+  outline-offset: 2px !important;
+}
+
+.explorer-row:focus-visible,
+.explorer-card:focus-visible {
+  outline: 2px solid #6366f1 !important;
+  outline-offset: -2px !important;
+  background-color: rgba(99, 102, 241, 0.08) !important;
+}
+
+.dark .explorer-row:focus-visible,
+.dark .explorer-card:focus-visible {
+  outline: 2px solid #818cf8 !important;
+  outline-offset: -2px !important;
+  background-color: rgba(99, 102, 241, 0.15) !important;
 }
 
 /* Polished Scrollbar */
@@ -148,3 +167,33 @@
 .dark .drag-active {
   background-color: rgba(99, 102, 241, 0.12) !important;
 }
+
+/* Accessible Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skeleton {
+    animation: none !important;
+    opacity: 0.7 !important;
+  }
+
+  .toast-animate {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .animate-pulse,
+  .animate-spin,
+  .animate-scale-up {
+    animation: none !important;
+  }
+}
+

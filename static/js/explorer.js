@@ -72,17 +72,116 @@ const ExplorerController = {
     const modalBackdrop = document.getElementById('feedback-detail-modal');
     if (closeModalBtn && modalBackdrop) {
       closeModalBtn.addEventListener('click', () => {
-        modalBackdrop.classList.add('hidden');
+        this.closeDetailModal();
       });
       modalBackdrop.addEventListener('click', (e) => {
-        if (e.target === modalBackdrop) modalBackdrop.classList.add('hidden');
+        if (e.target === modalBackdrop) this.closeDetailModal();
       });
+    }
+
+    // Keyboard navigation for table rows and mobile cards (Arrow keys + Enter)
+    const handleKeyNav = (e) => {
+      const row = e.target.closest('.explorer-row, .explorer-card');
+      if (!row) return;
+
+      const items = Array.from(document.querySelectorAll('.explorer-row, .explorer-card')).filter(
+        (el) => el.offsetParent !== null
+      );
+      const currentIndex = items.indexOf(row);
+      if (currentIndex === -1) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = items[currentIndex + 1];
+        if (next) next.focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = items[currentIndex - 1];
+        if (prev) prev.focus();
+      } else if (e.key === 'Enter') {
+        // Open modal if user presses Enter on the row/card (not on inner delete button)
+        if (e.target.tagName !== 'BUTTON') {
+          e.preventDefault();
+          const id = row.getAttribute('data-id');
+          if (id) {
+            this.showDetailModal(parseInt(id, 10), row);
+          }
+        }
+      }
+    };
+
+    const handleRowClick = (e) => {
+      if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+      const row = e.target.closest('.explorer-row, .explorer-card');
+      if (!row) return;
+      const id = row.getAttribute('data-id');
+      if (id) {
+        this.showDetailModal(parseInt(id, 10), row);
+      }
+    };
+
+    const tableBody = document.getElementById('explorer-table-body');
+    const mobileContainer = document.getElementById('explorer-mobile-cards');
+    if (tableBody) {
+      tableBody.addEventListener('keydown', handleKeyNav);
+      tableBody.addEventListener('click', handleRowClick);
+    }
+    if (mobileContainer) {
+      mobileContainer.addEventListener('keydown', handleKeyNav);
+      mobileContainer.addEventListener('click', handleRowClick);
     }
 
     // Listen to global feedback creation events
     window.addEventListener('feedback-created', () => {
       this.loadData();
     });
+  },
+
+  renderSkeletons() {
+    const tableBody = document.getElementById('explorer-table-body');
+    const mobileContainer = document.getElementById('explorer-mobile-cards');
+    const emptyState = document.getElementById('explorer-empty-state');
+    if (emptyState) emptyState.classList.add('hidden');
+
+    if (tableBody) {
+      tableBody.innerHTML = Array.from({ length: 5 })
+        .map(
+          () => `
+          <tr class="border-b border-slate-200/80 dark:border-slate-800/80 text-xs">
+            <td class="px-4 py-3.5"><div class="h-3.5 w-8 rounded skeleton"></div></td>
+            <td class="px-4 py-3.5"><div class="h-3.5 w-64 rounded skeleton"></div></td>
+            <td class="px-4 py-3.5"><div class="h-5 w-16 rounded-full skeleton"></div></td>
+            <td class="px-4 py-3.5"><div class="h-3.5 w-10 rounded skeleton"></div></td>
+            <td class="px-4 py-3.5"><div class="h-3.5 w-16 rounded skeleton"></div></td>
+            <td class="px-4 py-3.5"><div class="h-3.5 w-12 rounded skeleton"></div></td>
+            <td class="px-4 py-3.5"><div class="h-3.5 w-14 rounded skeleton"></div></td>
+            <td class="px-4 py-3.5"><div class="h-3.5 w-20 rounded skeleton"></div></td>
+            <td class="px-4 py-3.5 text-right"><div class="h-5 w-20 rounded skeleton ml-auto"></div></td>
+          </tr>
+        `
+        )
+        .join('');
+    }
+
+    if (mobileContainer) {
+      mobileContainer.innerHTML = Array.from({ length: 3 })
+        .map(
+          () => `
+          <div class="p-4 rounded-xl saas-card space-y-2.5 text-xs">
+            <div class="flex items-center justify-between">
+              <div class="h-4 w-16 rounded skeleton"></div>
+              <div class="h-4 w-12 rounded skeleton"></div>
+            </div>
+            <div class="h-8 w-full rounded skeleton"></div>
+            <div class="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
+              <div class="h-3 w-20 rounded skeleton"></div>
+              <div class="h-3 w-16 rounded skeleton"></div>
+            </div>
+          </div>
+        `
+        )
+        .join('');
+    }
   },
 
   async loadData() {
@@ -99,6 +198,9 @@ const ExplorerController = {
     const source = document.getElementById('explorer-filter-source')?.value || undefined;
     const sortVal = document.getElementById('explorer-sort-select')?.value || 'created_at-desc';
     const [sort_by, sort_order] = sortVal.split('-');
+
+    // Render skeleton placeholders while fetching data
+    this.renderSkeletons();
 
     try {
       const response = await window.api.listFeedback({
@@ -164,6 +266,9 @@ const ExplorerController = {
       }
     } catch (err) {
       console.error('Failed to load feedback records:', err);
+      if (tableBody) tableBody.innerHTML = '';
+      if (mobileContainer) mobileContainer.innerHTML = '';
+      if (emptyState) emptyState.classList.remove('hidden');
       window.showToast(err.message || 'Error loading feedback table.', 'error');
     }
   },
@@ -182,7 +287,13 @@ const ExplorerController = {
     if (sentiment === 'negative') badgeClass = 'badge-negative';
 
     return `
-      <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 border-b border-slate-200/80 dark:border-slate-800/80 transition-colors text-xs">
+      <tr 
+        class="explorer-row hover:bg-slate-50/80 dark:hover:bg-slate-800/40 border-b border-slate-200/80 dark:border-slate-800/80 transition-colors text-xs cursor-pointer focus:outline-none" 
+        tabindex="0" 
+        data-id="${item.id}"
+        role="row"
+        aria-label="Feedback record #${item.id}, ${sentiment} sentiment, confidence ${confPct}%"
+      >
         <td class="px-4 py-3 font-mono text-slate-400 text-[11px]">#${item.id}</td>
         <td class="px-4 py-3 max-w-xs md:max-w-md truncate text-slate-800 dark:text-slate-200 font-medium">
           ${window.escapeHtml(item.text)}
@@ -208,8 +319,8 @@ const ExplorerController = {
           ${dateStr}
         </td>
         <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
-          <button onclick="window.viewFeedbackDetail(${item.id})" class="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-medium">View</button>
-          <button onclick="window.confirmDeleteFeedback(${item.id})" class="px-2 py-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 font-medium">Delete</button>
+          <button onclick="event.stopPropagation(); window.viewFeedbackDetail(${item.id}, this)" aria-label="Inspect feedback record #${item.id}" class="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500">View</button>
+          <button onclick="event.stopPropagation(); window.confirmDeleteFeedback(${item.id}, this)" aria-label="Delete feedback record #${item.id}" class="px-2 py-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 font-medium focus:outline-none focus:ring-1 focus:ring-rose-500">Delete</button>
         </td>
       </tr>
     `;
@@ -227,7 +338,13 @@ const ExplorerController = {
     if (sentiment === 'negative') badgeClass = 'badge-negative';
 
     return `
-      <div class="p-4 rounded-xl saas-card space-y-2 text-xs">
+      <div 
+        class="explorer-card p-4 rounded-xl saas-card space-y-2 text-xs cursor-pointer focus:outline-none"
+        tabindex="0"
+        data-id="${item.id}"
+        role="article"
+        aria-label="Feedback record #${item.id}, ${sentiment} sentiment, confidence ${confPct}%"
+      >
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-2">
             <span class="font-mono text-slate-400 text-[11px]">#${item.id}</span>
@@ -241,14 +358,26 @@ const ExplorerController = {
           <span>${dateStr}</span>
         </div>
         <div class="flex justify-end space-x-3 pt-1">
-          <button onclick="window.viewFeedbackDetail(${item.id})" class="text-indigo-600 dark:text-indigo-400 font-medium">Inspect</button>
-          <button onclick="window.confirmDeleteFeedback(${item.id})" class="text-rose-600 dark:text-rose-400 font-medium">Delete</button>
+          <button onclick="event.stopPropagation(); window.viewFeedbackDetail(${item.id}, this)" aria-label="Inspect feedback record #${item.id}" class="text-indigo-600 dark:text-indigo-400 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500">Inspect</button>
+          <button onclick="event.stopPropagation(); window.confirmDeleteFeedback(${item.id}, this)" aria-label="Delete feedback record #${item.id}" class="text-rose-600 dark:text-rose-400 font-medium focus:outline-none focus:ring-1 focus:ring-rose-500">Delete</button>
         </div>
       </div>
     `;
   },
 
-  async showDetailModal(feedbackId) {
+  closeDetailModal() {
+    const modal = document.getElementById('feedback-detail-modal');
+    if (modal) modal.classList.add('hidden');
+    if (this.detailModalTrap) {
+      this.detailModalTrap.deactivate();
+      this.detailModalTrap = null;
+    }
+  },
+
+  async showDetailModal(
+    feedbackId,
+    triggeringElement = typeof document !== 'undefined' ? document.activeElement : null
+  ) {
     try {
       const data = await window.api.getFeedback(feedbackId);
       const modal = document.getElementById('feedback-detail-modal');
@@ -284,21 +413,46 @@ const ExplorerController = {
       setText('detail-modal-neu-val', `${neuPct}%`);
       setText('detail-modal-neg-val', `${negPct}%`);
 
+      const closeBtn = document.getElementById('detail-modal-close');
       const deleteBtn = document.getElementById('detail-modal-delete-btn');
+
       if (deleteBtn) {
         deleteBtn.onclick = () => {
           modal.classList.add('hidden');
-          this.confirmDelete(data.id);
+          if (this.detailModalTrap) {
+            this.detailModalTrap.deactivate();
+            this.detailModalTrap = null;
+          }
+          this.confirmDelete(data.id, triggeringElement);
         };
       }
 
       modal.classList.remove('hidden');
+
+      if (this.detailModalTrap) {
+        this.detailModalTrap.deactivate();
+        this.detailModalTrap = null;
+      }
+
+      if (window.ModalHelper && typeof window.ModalHelper.createFocusTrap === 'function') {
+        this.detailModalTrap = window.ModalHelper.createFocusTrap(modal, {
+          onEscape: () => this.closeDetailModal(),
+          returnFocusEl: triggeringElement,
+          initialFocusEl: closeBtn,
+        });
+        this.detailModalTrap.activate();
+      } else if (closeBtn) {
+        closeBtn.focus();
+      }
     } catch (err) {
       window.showToast(err.message || 'Failed to load feedback details.', 'error');
     }
   },
 
-  confirmDelete(feedbackId) {
+  confirmDelete(
+    feedbackId,
+    returnFocusEl = typeof document !== 'undefined' ? document.activeElement : null
+  ) {
     window.showConfirm(
       'Delete Customer Feedback',
       `Are you sure you want to permanently delete feedback record #${feedbackId}? This action cannot be undone.`,
@@ -312,11 +466,12 @@ const ExplorerController = {
         } catch (err) {
           window.showToast(err.message || 'Failed to delete record.', 'error');
         }
-      }
+      },
+      returnFocusEl
     );
   },
 };
 
 window.ExplorerController = ExplorerController;
-window.viewFeedbackDetail = (id) => ExplorerController.showDetailModal(id);
-window.confirmDeleteFeedback = (id) => ExplorerController.confirmDelete(id);
+window.viewFeedbackDetail = (id, el) => ExplorerController.showDetailModal(id, el);
+window.confirmDeleteFeedback = (id, el) => ExplorerController.confirmDelete(id, el);
