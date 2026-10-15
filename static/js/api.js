@@ -118,7 +118,13 @@ const API = {
         });
       }
 
-      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+      if (
+        (err.name === 'TypeError' && err.message.includes('fetch')) ||
+        (typeof navigator !== 'undefined' && !navigator.onLine && !err.status)
+      ) {
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          throw new Error('Network offline: Server connection is required for this action.');
+        }
         throw new Error(
           'Network error: Unable to connect to server. Please check your internet connection.'
         );

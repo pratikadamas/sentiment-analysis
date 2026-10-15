@@ -157,6 +157,11 @@ const AnalyticsController = {
    * allowing fast re-filtering by sentiment without refetching the entire dashboard.
    */
   async updateConfidenceDistribution() {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      this.renderConfidenceChart(null);
+      return;
+    }
+
     try {
       const aggregation = await this.fetchConfidenceData(this.currentRange, this.currentSentiment);
       this.renderConfidenceChart(aggregation);
@@ -170,9 +175,18 @@ const AnalyticsController = {
     const emptyState = document.getElementById('analytics-empty-state');
     const skeletonView = document.getElementById('analytics-skeleton-view');
     const content = document.getElementById('analytics-content-view');
+    const offlineState = document.getElementById('analytics-offline-state');
 
+    if (offlineState) offlineState.classList.add('hidden');
     if (emptyState) emptyState.classList.add('hidden');
     if (content) content.classList.add('hidden');
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (skeletonView) skeletonView.classList.add('hidden');
+      if (offlineState) offlineState.classList.remove('hidden');
+      return;
+    }
+
     if (skeletonView) skeletonView.classList.remove('hidden');
 
     try {
@@ -216,8 +230,14 @@ const AnalyticsController = {
       console.error('Analytics load error:', err);
       if (skeletonView) skeletonView.classList.add('hidden');
       if (content) content.classList.add('hidden');
-      if (emptyState) emptyState.classList.remove('hidden');
-      window.showToast(err.message || 'Failed to load analytics.', 'error');
+
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        if (emptyState) emptyState.classList.add('hidden');
+        if (offlineState) offlineState.classList.remove('hidden');
+      } else {
+        if (emptyState) emptyState.classList.remove('hidden');
+        window.showToast(err.message || 'Failed to load analytics.', 'error');
+      }
     }
   },
 

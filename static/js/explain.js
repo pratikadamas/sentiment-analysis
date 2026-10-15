@@ -469,6 +469,19 @@ export const ExplainabilityController = {
       return;
     }
 
+    // Phase 6: Offline handling
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (loading) loading.classList.add('hidden');
+      if (capNotice) {
+        capNotice.classList.remove('hidden');
+        capNotice.innerHTML = `
+          <span class="font-semibold text-slate-700 dark:text-slate-300 block mb-0.5">📡 Explainability Unavailable Offline</span>
+          Approximate word attribution requires batch server inference. Reconnect to calculate token sensitivity.
+        `;
+      }
+      return;
+    }
+
     // Step 1: Token extraction
     const { tokens, isOverCap } = extractExplainTokens(text, {
       maxTokens: MAX_EXPLAIN_TOKENS,
@@ -527,7 +540,15 @@ export const ExplainabilityController = {
     } catch (err) {
       console.warn('Explainability perturbation analysis degraded gracefully:', err);
       if (loading) loading.classList.add('hidden');
-      if (emptyNotice) {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        if (capNotice) {
+          capNotice.classList.remove('hidden');
+          capNotice.innerHTML = `
+            <span class="font-semibold text-slate-700 dark:text-slate-300 block mb-0.5">📡 Explainability Unavailable Offline</span>
+            Approximate word attribution requires batch server inference. Reconnect to calculate token sensitivity.
+          `;
+        }
+      } else if (emptyNotice) {
         emptyNotice.classList.remove('hidden');
         emptyNotice.textContent =
           'Word influence currently unavailable (prediction sensitivity calculation timed out).';

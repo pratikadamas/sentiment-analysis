@@ -286,6 +286,14 @@ const AnalyzeController = {
       return;
     }
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      window.showToast(
+        'Offline Mode: ML sentiment analysis requires an active server connection. Your input is preserved.',
+        'warning'
+      );
+      return;
+    }
+
     const shouldSave = saveCheckbox ? saveCheckbox.checked : true;
     const category = categoryInput ? categoryInput.value.trim() : null;
     const source = sourceInput ? sourceInput.value.trim() : 'web';
@@ -713,6 +721,14 @@ const AnalyzeController = {
     }
 
     if (errBox) errBox.classList.add('hidden');
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      window.showToast(
+        'Offline Mode: Bulk ML analysis requires an active server connection. Your input is preserved.',
+        'warning'
+      );
+      return;
+    }
 
     // Lock controls during processing
     this.isAnalyzingBulk = true;

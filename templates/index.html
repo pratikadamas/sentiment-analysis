@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sentiment Pulse — Customer Feedback Intelligence Platform</title>
   <meta name="description" content="AI-powered customer feedback intelligence platform. Monitor sentiment, track trends over time, and resolve negative customer feedback.">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png">
 
   <!-- Theme Initialization (Prevents FOUC) -->
   <script>
@@ -219,11 +222,11 @@
       <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-xs">
         <div class="flex items-center space-x-2.5 min-w-0">
           <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-xs flex-shrink-0">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="sidebar-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           </div>
           <div class="min-w-0 flex-1">
             <span class="font-semibold text-slate-800 dark:text-slate-100 truncate block text-[11px]">Sentiment Pulse</span>
-            <span class="text-[10px] text-emerald-500 truncate block font-mono">System Active</span>
+            <span id="sidebar-status-text" class="text-[10px] text-emerald-500 truncate block font-mono">System Active</span>
           </div>
         </div>
       </div>
@@ -233,6 +236,18 @@
 
   <!-- Main Viewport Content Container -->
   <main id="main-content" tabindex="-1" class="flex-1 min-w-0 px-4 sm:px-8 py-6 max-w-7xl mx-auto w-full outline-none">
+
+    <!-- Accessible Offline Status Banner -->
+    <div id="offline-banner" class="hidden mb-6 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs flex items-center justify-between gap-3" role="status" aria-live="polite">
+      <div class="flex items-center space-x-2.5 min-w-0">
+        <span aria-hidden="true" class="text-base flex-shrink-0">📡</span>
+        <div>
+          <span class="font-semibold block sm:inline">Offline Mode:</span>
+          <span class="opacity-90"> Application shell and local IndexedDB history remain available. Live ML analysis and server analytics require an active network connection.</span>
+        </div>
+      </div>
+      <span class="flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">Offline</span>
+    </div>
 
     <!-- ===================================================================== -->
     <!-- VIEW 1: OVERVIEW DASHBOARD                                            -->
@@ -1005,6 +1020,13 @@
         </div>
       </div>
 
+      <!-- Offline State -->
+      <div id="analytics-offline-state" class="hidden p-12 text-center saas-card">
+        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 text-xl font-bold">📡</div>
+        <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Analytics are unavailable offline</p>
+        <p class="text-xs text-slate-400 mt-1.5 max-w-md mx-auto">Customer satisfaction trends and confidence distributions require live server data. Reconnect to the network to refresh analytics.</p>
+      </div>
+
       <!-- Empty State -->
       <div id="analytics-empty-state" class="hidden p-12 text-center saas-card">
         <p class="text-xs font-semibold text-slate-700 dark:text-slate-300">Insufficient analytics data</p>
@@ -1496,6 +1518,7 @@
   <script type="module" src="/static/js/lib/store.js"></script>
   <script type="module" src="/static/js/lib/bulk.js"></script>
   <script type="module" src="/static/js/lib/confidence.js"></script>
+  <script type="module" src="/static/js/lib/pwa-helpers.js"></script>
   <script type="module" src="/static/js/explain.js"></script>
   <script src="/static/js/api.js"></script>
   <script src="/static/js/overview.js"></script>

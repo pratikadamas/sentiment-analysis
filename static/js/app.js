@@ -134,6 +134,8 @@ const App = {
 
   async init() {
     this.bindNavigation();
+    this.initOfflineDetection();
+    this.initServiceWorker();
 
     // Route based on URL hash or default to overview
     const hash = window.location.hash.replace('#', '');
@@ -263,6 +265,86 @@ const App = {
     const backdrop = document.getElementById('mobile-drawer-backdrop');
     if (drawer) drawer.classList.add('-translate-x-full');
     if (backdrop) backdrop.classList.add('hidden');
+  },
+
+  initOfflineDetection() {
+    const banner = document.getElementById('offline-banner');
+    const statusText = document.getElementById('sidebar-status-text');
+    const statusDot = document.getElementById('sidebar-status-dot');
+
+    const updateStatus = (isOnline) => {
+      if (banner) {
+        if (isOnline) {
+          banner.classList.add('hidden');
+        } else {
+          banner.classList.remove('hidden');
+        }
+      }
+
+      if (statusText) {
+        statusText.textContent = isOnline ? 'System Active' : 'Offline Shell';
+        statusText.className = isOnline
+          ? 'text-[10px] text-emerald-500 truncate block font-mono'
+          : 'text-[10px] text-amber-500 truncate block font-mono';
+      }
+
+      if (statusDot) {
+        statusDot.className = isOnline
+          ? 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse'
+          : 'w-2 h-2 rounded-full bg-amber-500';
+      }
+    };
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      updateStatus(false);
+    }
+
+    window.addEventListener('online', () => {
+      updateStatus(true);
+      window.showToast('Back online! Live inference and analytics are now active.', 'success');
+      if (this.currentView === 'overview' && window.OverviewController) {
+        window.OverviewController.refresh();
+      } else if (this.currentView === 'analytics' && window.AnalyticsController) {
+        window.AnalyticsController.loadAnalytics();
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      updateStatus(false);
+      window.showToast(
+        'You are offline. Application shell and local IndexedDB history remain available.',
+        'warning'
+      );
+    });
+  },
+
+  initServiceWorker() {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/static/js/sw.js')
+        .then((reg) => {
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  window.showToast(
+                    'A new version of Sentiment Pulse is available. It will activate on next visit.',
+                    'info'
+                  );
+                }
+              });
+            }
+          });
+        })
+        .catch((err) => {
+          console.warn('[SW] Registration failed:', err);
+        });
+    });
   },
 };
 
