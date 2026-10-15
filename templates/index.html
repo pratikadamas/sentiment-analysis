@@ -405,12 +405,26 @@
     <!-- ===================================================================== -->
     <div id="view-analyze" class="hidden space-y-6">
       
-      <div class="pb-4 border-b border-slate-200 dark:border-slate-800">
-        <h1 class="text-2xl font-bold font-display text-slate-900 dark:text-white">Analyze Customer Feedback</h1>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Evaluate customer sentiment in real time with our INT8 Quantized ONNX Transformer model.</p>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div>
+          <h1 class="text-2xl font-bold font-display text-slate-900 dark:text-white">Analyze Customer Feedback</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Evaluate customer sentiment in real time with our INT8 Quantized ONNX Transformer model.</p>
+        </div>
+
+        <!-- Segmented Tab Switcher (Single vs Bulk) -->
+        <div class="flex items-center space-x-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl" role="tablist" aria-label="Analysis Mode">
+          <button type="button" id="analyze-tab-single" role="tab" aria-selected="true" aria-controls="analyze-panel-single" onclick="window.AnalyzeController.switchTab('single')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            ⚡ Single Review
+          </button>
+          <button type="button" id="analyze-tab-bulk" role="tab" aria-selected="false" aria-controls="analyze-panel-bulk" onclick="window.AnalyzeController.switchTab('bulk')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            📋 Bulk Paste Analysis
+          </button>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <!-- SINGLE ANALYSIS PANEL -->
+      <div id="analyze-panel-single" class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         <!-- Input Form (Left 7 cols) -->
         <div class="lg:col-span-7 space-y-5">
@@ -550,6 +564,18 @@
                   <span id="analyze-sentiment-confidence" class="font-mono font-bold text-sm">92.4%</span>
                 </div>
                 <div id="analyze-saved-tag" class="mt-2.5"></div>
+                <div class="mt-3">
+                  <button 
+                    type="button" 
+                    id="analyze-share-btn" 
+                    aria-label="Share sentiment analysis result"
+                    onclick="window.AnalyzeController.handleShare()"
+                    class="px-3.5 py-1.5 rounded-xl saas-card text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 inline-flex items-center space-x-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  >
+                    <span>🔗</span>
+                    <span id="analyze-share-btn-text">Share Result</span>
+                  </button>
+                </div>
               </div>
 
               <!-- Plain-English Interpretation -->
@@ -610,8 +636,152 @@
         </div>
 
       </div>
+      <!-- /grid -->
+    </div>
+    <!-- /#analyze-panel-single -->
+
+      <!-- ===================================================================== -->
+      <!-- BULK ANALYSIS PANEL                                                   -->
+      <!-- ===================================================================== -->
+      <div id="analyze-panel-bulk" class="hidden space-y-6">
+        
+        <!-- Input Card -->
+        <div class="saas-card p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <label for="bulk-text-input" class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Bulk Feedback Lines (One analysis entry per line)
+              </label>
+              <p class="text-[11px] text-slate-400 mt-0.5">Paste raw customer reviews (max 100 rows). Evaluated sequentially in batches of up to 50.</p>
+            </div>
+            <div class="flex items-center space-x-3">
+              <span id="bulk-row-counter" class="text-xs font-mono font-medium text-slate-500 dark:text-slate-400">0 / 100 rows</span>
+              <button type="button" id="bulk-sample-btn" onclick="window.AnalyzeController.loadSamples()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                ✨ Load Samples
+              </button>
+            </div>
+          </div>
+
+          <textarea 
+            id="bulk-text-input" 
+            rows="8" 
+            placeholder="Paste multiple lines of customer reviews here (one per line, up to 100 lines)...&#10;Line 1: The onboarding wizard made setup completely painless!&#10;Line 2: Delivery was on time, standard packaging.&#10;Line 3: Broken checkout experience on mobile."
+            class="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-xs font-mono rounded-xl p-4 border border-slate-300 dark:border-slate-700/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all resize-y"
+          ></textarea>
+
+          <!-- Client-side Validation Error Box -->
+          <div id="bulk-validation-errors" class="hidden p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-300 space-y-1.5" role="alert" aria-live="polite">
+            <div class="flex items-center space-x-1.5 font-bold text-rose-800 dark:text-rose-200">
+              <span>⚠️</span>
+              <span id="bulk-validation-title">Validation Issues Detected</span>
+            </div>
+            <ul id="bulk-validation-list" class="list-disc list-inside space-y-1 text-[11px] pl-1 max-h-36 overflow-y-auto font-mono">
+              <!-- Dynamically populated -->
+            </ul>
+          </div>
+
+          <!-- Controls -->
+          <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <button type="button" id="bulk-clear-btn" onclick="window.AnalyzeController.resetBulkView()" class="px-3.5 py-2 rounded-xl text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-1 focus:ring-slate-400">
+              Clear All Lines
+            </button>
+            <button type="button" id="bulk-submit-btn" onclick="window.AnalyzeController.executeBulkAnalysis()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 flex items-center space-x-2 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <span id="bulk-btn-spinner" class="hidden">
+                <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+              </span>
+              <span id="bulk-btn-text">Analyze All Reviews (Ctrl+Enter)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Container -->
+        <div id="bulk-progress-container" class="hidden saas-card p-5 space-y-3" aria-live="polite">
+          <div class="flex items-center justify-between text-xs">
+            <span id="bulk-progress-label" class="font-bold text-slate-800 dark:text-slate-200">Analyzing bulk feedback...</span>
+            <span id="bulk-progress-sublabel" class="font-mono text-slate-500 text-[11px]">Preparing batches...</span>
+          </div>
+          <div class="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div id="bulk-progress-bar" class="h-full bg-indigo-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Bulk Results Card -->
+        <div id="bulk-results-card" class="hidden saas-card overflow-hidden space-y-4 p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white">Bulk Analysis Results</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Classification results across evaluated customer review rows.</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button type="button" id="bulk-export-btn" onclick="window.AnalyzeController.exportBulkCSV()" class="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white text-xs font-medium flex items-center space-x-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors shadow-sm">
+                <span>📥</span>
+                <span>Export results CSV</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Summary Metric Pills -->
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-center">
+              <span class="text-[10px] uppercase font-bold text-slate-400 block">Total</span>
+              <span id="bulk-stat-total" class="font-mono font-bold text-base text-slate-900 dark:text-white">0</span>
+            </div>
+            <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+              <span class="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Positive</span>
+              <span id="bulk-stat-pos" class="font-mono font-bold text-base text-emerald-600 dark:text-emerald-400">0</span>
+            </div>
+            <div class="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
+              <span class="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 block">Neutral</span>
+              <span id="bulk-stat-neu" class="font-mono font-bold text-base text-blue-600 dark:text-blue-400">0</span>
+            </div>
+            <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center">
+              <span class="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 block">Negative</span>
+              <span id="bulk-stat-neg" class="font-mono font-bold text-base text-rose-600 dark:text-rose-400">0</span>
+            </div>
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
+              <span class="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block">Errors</span>
+              <span id="bulk-stat-err" class="font-mono font-bold text-base text-amber-600 dark:text-amber-400">0</span>
+            </div>
+          </div>
+
+          <!-- Desktop Results Table -->
+          <div class="hidden md:block overflow-x-auto border border-slate-200/80 dark:border-slate-800 rounded-xl">
+            <table class="w-full text-left border-collapse" role="table">
+              <thead>
+                <tr class="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <th class="px-4 py-3 w-16">#</th>
+                  <th class="px-4 py-3 w-32">Sentiment</th>
+                  <th class="px-4 py-3 w-28">Confidence</th>
+                  <th class="px-4 py-3">Customer Feedback Text</th>
+                  <th class="px-4 py-3 text-right w-24">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="bulk-results-table-body">
+                <!-- Dynamically populated rows -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Mobile Cards Container -->
+          <div id="bulk-mobile-cards" class="md:hidden space-y-3">
+            <!-- Dynamically populated for mobile screens -->
+          </div>
+        </div>
+
+        <!-- Empty State Prompt -->
+        <div id="bulk-empty-state" class="p-10 rounded-2xl saas-card text-center border-dashed border-2 border-slate-300 dark:border-slate-700/80">
+          <div class="text-3xl mb-2">📋</div>
+          <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">No bulk reviews analyzed yet</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+            Paste customer statements above and click "Analyze All Reviews" to inspect model predictions in batches.
+          </p>
+        </div>
+
+      </div>
+      <!-- /#analyze-panel-bulk -->
 
     </div>
+    <!-- /#view-analyze -->
 
 
     <!-- ===================================================================== -->
@@ -1210,6 +1380,7 @@
   <script type="module" src="/static/js/lib/chunker.js"></script>
   <script type="module" src="/static/js/lib/modal.js"></script>
   <script type="module" src="/static/js/lib/store.js"></script>
+  <script type="module" src="/static/js/lib/bulk.js"></script>
   <script src="/static/js/api.js"></script>
   <script src="/static/js/overview.js"></script>
   <script src="/static/js/analyze.js"></script>
