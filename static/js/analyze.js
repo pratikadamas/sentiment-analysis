@@ -12,6 +12,12 @@ const AnalyzeController = {
 
   init() {
     this.bindEvents();
+    if (
+      window.ExplainabilityController &&
+      typeof window.ExplainabilityController.init === 'function'
+    ) {
+      window.ExplainabilityController.init();
+    }
   },
 
   bindEvents() {
@@ -253,6 +259,12 @@ const AnalyzeController = {
     if (activeResults) activeResults.classList.add('hidden');
     if (emptyState) emptyState.classList.remove('hidden');
     this.currentSingleResult = null;
+    if (
+      window.ExplainabilityController &&
+      typeof window.ExplainabilityController.reset === 'function'
+    ) {
+      window.ExplainabilityController.reset();
+    }
   },
 
   async executeAnalysis() {
@@ -336,6 +348,16 @@ const AnalyzeController = {
           console.warn('Failed to persist to local history:', storeErr);
         }
       }
+
+      // Phase 5: Approximate Explainability (Asynchronous perturbation heuristic)
+      if (
+        window.ExplainabilityController &&
+        typeof window.ExplainabilityController.explain === 'function'
+      ) {
+        window.ExplainabilityController.explain(text, result).catch((explainErr) => {
+          console.warn('Non-fatal: explainability analysis failed:', explainErr);
+        });
+      }
     } catch (err) {
       console.error('Inference error:', err);
       if (skeleton) skeleton.classList.add('hidden');
@@ -376,6 +398,14 @@ const AnalyzeController = {
     const latencyEl = document.getElementById('analyze-latency-tag');
     if (latencyEl) {
       latencyEl.textContent = 'Loaded from local history';
+    }
+
+    // Do NOT re-run inference or perturbation on history rehydration
+    if (
+      window.ExplainabilityController &&
+      typeof window.ExplainabilityController.showHistoryState === 'function'
+    ) {
+      window.ExplainabilityController.showHistoryState();
     }
 
     window.showToast('Analysis rehydrated from local history.', 'info');

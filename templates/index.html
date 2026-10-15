@@ -619,6 +619,81 @@
                 </div>
               </div>
 
+              <!-- Word Influence Explainability Section (Phase 5) -->
+              <div id="analyze-explainability-section" class="p-4 rounded-xl saas-card border border-slate-200/80 dark:border-slate-800 space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-2 border-b border-slate-100 dark:border-slate-800/80">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Word Influence</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-medium border border-indigo-200/50 dark:border-indigo-800/50">Approximate</span>
+                  </div>
+                  <span class="text-[11px] text-slate-400 dark:text-slate-500 italic">Approximate word influence — heuristic, not model-true.</span>
+                </div>
+
+                <!-- Loading State -->
+                <div id="explain-loading" class="hidden py-4 text-center space-y-2" aria-live="polite">
+                  <div class="inline-flex items-center space-x-2 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                    <svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span>Computing approximate word influence...</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400">Evaluating prediction sensitivity across masked token perturbations.</p>
+                </div>
+
+                <!-- Over-Cap Notice (>300 chars) -->
+                <div id="explain-cap-notice" class="hidden p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                  <span class="font-semibold text-slate-700 dark:text-slate-300 block mb-0.5">ℹ️ Text Exceeds Explainability Length</span>
+                  Approximate word influence is available for customer feedback up to 300 characters (<span id="explain-cap-chars" class="font-mono font-bold text-slate-700 dark:text-slate-300"></span> characters provided). The primary sentiment prediction above remains fully accurate.
+                </div>
+
+                <!-- Empty / Unavailable Notice -->
+                <div id="explain-empty-notice" class="hidden p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 text-[11px] text-slate-400 text-center italic">
+                  No influential words identified in this short or non-standard phrase.
+                </div>
+
+                <!-- Content View -->
+                <div id="explain-content" class="hidden space-y-3">
+                  <!-- Highlighted Text Block -->
+                  <div 
+                    id="explain-highlighted-text" 
+                    tabindex="0" 
+                    role="region" 
+                    aria-label="Analyzed text with word influence highlights"
+                    class="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/80 text-xs leading-relaxed text-slate-800 dark:text-slate-200"
+                  ></div>
+
+                  <!-- Active Token Inspector / Tooltip Bar -->
+                  <div id="explain-active-token-bar" class="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-[11px] flex flex-wrap items-center justify-between gap-2 text-slate-600 dark:text-slate-300" aria-live="polite">
+                    <div class="flex items-center space-x-2">
+                      <span class="font-semibold text-slate-500 dark:text-slate-400 uppercase text-[10px]">Inspect Word:</span>
+                      <span id="explain-active-word" class="font-bold text-slate-900 dark:text-white font-mono">—</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <span id="explain-active-direction" class="font-medium text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">Select or hover a highlighted word</span>
+                      <span id="explain-active-delta" class="font-mono font-bold text-xs">—</span>
+                    </div>
+                  </div>
+
+                  <!-- Legend -->
+                  <div class="flex flex-wrap items-center gap-3 pt-1 text-[10px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800/60">
+                    <span class="font-semibold uppercase tracking-wider text-slate-400">Legend:</span>
+                    <span class="inline-flex items-center space-x-1">
+                      <span class="w-2.5 h-2.5 rounded bg-emerald-500 inline-block" aria-hidden="true"></span>
+                      <span>Supported predicted label</span>
+                    </span>
+                    <span class="inline-flex items-center space-x-1">
+                      <span class="w-2.5 h-2.5 rounded bg-rose-500 inline-block" aria-hidden="true"></span>
+                      <span>Opposed predicted label</span>
+                    </span>
+                    <span class="inline-flex items-center space-x-1">
+                      <span class="w-2.5 h-2.5 rounded bg-slate-400 dark:bg-slate-600 inline-block" aria-hidden="true"></span>
+                      <span>Neutral / negligible influence (&lt;1%)</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <!-- Raw API JSON Accordion -->
               <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
                 <button type="button" id="analyze-toggle-json" class="w-full flex items-center justify-between text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
@@ -1421,6 +1496,7 @@
   <script type="module" src="/static/js/lib/store.js"></script>
   <script type="module" src="/static/js/lib/bulk.js"></script>
   <script type="module" src="/static/js/lib/confidence.js"></script>
+  <script type="module" src="/static/js/explain.js"></script>
   <script src="/static/js/api.js"></script>
   <script src="/static/js/overview.js"></script>
   <script src="/static/js/analyze.js"></script>
