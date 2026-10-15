@@ -6,22 +6,58 @@
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-D71F00.svg?style=flat&logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org/)
 [![Alembic](https://img.shields.io/badge/Alembic-Migrations-red.svg?style=flat)](https://alembic.sqlalchemy.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-psycopg3-336791.svg?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![PWA Ready](https://img.shields.io/badge/PWA-Installable-blueviolet.svg?style=flat)](https://web.dev/progressive-web-apps/)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v3_Static-38B2AC.svg?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Render](https://img.shields.io/badge/Deploy-Render-46E3B7.svg?style=flat&logo=render&logoColor=white)](https://render.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Sentiment Pulse** is a production-grade customer feedback intelligence platform built on **FastAPI**, **PostgreSQL / SQLite**, **SQLAlchemy 2.0**, **Alembic**, and **ONNX Runtime (INT8 Quantized Transformer)**. It enables teams to ingest customer reviews via API or bulk CSV, classify sentiment with sub-25ms latency, monitor customer experience trends, and proactively detect churn risks with persistent storage and interactive dashboards.
+**Sentiment Pulse** is a production-grade customer feedback intelligence platform combining high-throughput NLP inference with an accessible, high-performance web interface. Built on **FastAPI**, **PostgreSQL / SQLite**, **SQLAlchemy 2.0**, **Alembic**, and **ONNX Runtime (INT8 Quantized Transformer)**, Sentiment Pulse empowers customer experience (CX), product, and support teams to ingest reviews via API or bulk upload, classify sentiment with sub-25ms latency, monitor customer happiness trends, inspect token attribution, and proactively detect churn risks.
 
 ---
 
-## 🚀 Key Features
+## 📖 Project Overview
 
-* **⚡ Ultra-Fast ONNX Transformer Inference:** Powered by an INT8 dynamically quantized transformer (`sentiment_model.onnx`, 67.4MB) and Hugging Face tokenizer (`tokenizer.json`). Runs on CPU with **sub-25ms latency**, lightweight memory footprint (<90MB RAM), and zero PyTorch production dependencies.
-* **💾 Enterprise Database & Schema Migrations:** Multi-dialect SQLAlchemy 2.0 engine supporting local SQLite and managed PostgreSQL on Render via `psycopg` (Psycopg 3). Full schema evolution managed with **Alembic migrations** (no unsafe `create_all()` in production).
-* **📋 Persistent Customer Feedback API:** Full CRUD lifecycle for customer feedback records including category tagging, source channel attributes, customer ratings (1–5), and persisted probability score distributions.
-* **📊 Business Intelligence & Sentiment Trends:** Server-side SQL aggregations providing volume metrics, sentiment percentages, temporal trends grouped by day, category breakdown, and proactive highlighting of recent negative feedback.
-* **📦 Bounded CSV Batch Ingestion & Secure Export:** Upload CSV reviews up to 5,000 rows in bounded streaming chunks with progress tracking (`ImportJob`), encoding autodetection, and **CSV Formula Injection Sanitization** (`=`, `+`, `-`, `@`) on export.
-* **🔭 Production Observability & Rate Limiting:** Request correlation IDs (`X-Request-ID`), execution latency metrics (`X-Process-Time`), sliding-window IP rate limiting, structured logging, separated liveness (`/health/live`) and readiness (`/health/ready`) probes.
-* **🎨 Modern SaaS Web Dashboard:** Single-page application interface opening directly to feedback analytics, real-time single and batch prediction playgrounds, paginated feedback explorer, and CSV import/export.
+### What is Sentiment Pulse?
+Organizations receive thousands of unstructured customer reviews, support transcripts, survey comments, and social feedback items every week across fragmented channels. Traditional text processing methods are either too slow, prohibitively expensive (calling external LLM APIs per review), or compromise customer data privacy.
+
+### The Problem It Solves
+1. **Low-Latency, Cost-Free Inference**: Replaces costly remote API calls with a local, INT8-quantized DistilBERT model executing in <25ms on commodity CPUs with zero GPU requirements.
+2. **Unified Actionable Intelligence**: Merges real-time single analysis, sequential bulk evaluation, paginated feedback exploration, and executive BI trend visualization into a single cohesive SaaS workspace.
+3. **Data Privacy & Local Control**: Provides client-side IndexedDB analysis history that never leaves the user's browser, alongside enterprise SQL persistence for team-shared records.
+4. **Reliability & Resilience**: Functions as an installable Progressive Web App (PWA) with an offline application shell, allowing users to browse historic data and review metrics even when disconnected from the network.
+
+---
+
+## 🚀 Complete Feature List
+
+### Core Inference & Machine Learning
+* **⚡ Sub-25ms ONNX Inference**: INT8 dynamically quantized transformer (`sentiment_model.onnx`, 67.4MB) and Hugging Face tokenizer (`tokenizer.json`) running on CPU with minimal memory footprint (<90MB RAM) and zero PyTorch runtime dependencies.
+* **🔍 Client-Side Explainability (Feature Attribution)**: Real-time word-level perturbation attribution highlighting positive and negative tokens that drove the model's sentiment prediction, computed via `/predict/batch` token masking.
+
+### Analysis & Playgrounds
+* **📝 Single Review Analysis**: Real-time sentiment classification with probability scores (Positive, Neutral, Negative), confidence metrics, character counter, keyboard shortcut execution (`Ctrl+Enter` / `Cmd+Enter`), and direct persistence to database.
+* **📋 Bulk Paste Analysis**: Multiline textarea supporting up to 100 rows per run (up to 2,000 characters per row). Processes reviews in sequential chunks (<=50 items) with a 500ms safety cooldown, real-time progress bar, isolated row-level error handling, and one-click CSV export.
+* **🔗 Web Share & Clipboard Fallback**: Share individual prediction summaries using the native Web Share API on supported devices, with seamless automatic fallback to clipboard copy and accessible feedback toasts.
+
+### Data Management & History
+* **💾 Local IndexedDB Analysis History**: Private, client-side history stored locally in browser IndexedDB (`sentiment-pulse-db`). Supports live text search, sentiment filtering, sorting by date and confidence, record deletion, bulk clearing with confirmation modals, and zero-predict rehydration.
+* **🔎 Feedback Explorer**: Paginated server feedback table with search, sentiment filters, category tags, rating stars, source channels, and record detail inspection modals.
+* **📦 Bounded CSV Batch Ingestion & Secure Export**: Upload CSV reviews up to 5,000 rows with background chunking (`ImportJob`), progress tracking, encoding autodetection, and CSV formula injection sanitization (`=`, `+`, `-`, `@`) on export.
+
+### Analytics & Business Intelligence
+* **📊 Interactive Executive Analytics Dashboard**: Real-time visual metrics powered by dynamically loaded Chart.js:
+  - Daily Sentiment Volume Trends (temporal line chart)
+  - Sentiment Distribution (doughnut chart)
+  - Category Sentiment Polarity (stacked horizontal bar chart)
+  - Feedback Volumes by Source Channel (bar chart)
+  - Model Confidence Distribution (binned bar chart: 0–50%, 50–70%, 70–90%, 90–100%)
+* **🚨 Proactive Churn Detection**: Highlights recent negative customer reviews on the executive overview card with direct jump links to investigation.
+
+### Frontend Architecture, Accessibility & Performance
+* **📱 Progressive Web App (PWA)**: Installable to desktop and mobile home screens via `manifest.webmanifest` and native Service Worker (`sw.js`, cache version `sentiment-pulse-shell-v2`).
+* **🌐 Offline Application Shell**: Full offline degradation with offline banner notification, preserved navigation, and instant access to IndexedDB history, while honestly communicating when server-side ML inference is unavailable.
+* **♿ Built-in Web Accessibility (WCAG 2.1 AA)**: Skip-to-content bypass link, semantic `<main>` landmark, active navigation `aria-current`, visible keyboard focus rings, modal focus trapping with Escape key dismissal and focus restoration, polite ARIA live toast notifications, table keyboard navigation, and `prefers-reduced-motion` compliance.
+* **⚡ High-Performance Zero-Build Runtime**: Native ES6 browser modules with zero build step requirements for local runtime, lazy loading of heavy libraries (Chart.js dynamically loaded only when navigating to `#analytics`), optimized font preloading, and pre-compiled static Tailwind CSS.
 
 ---
 
@@ -61,62 +97,90 @@
 │       ├── analytics.py            # /feedback/analytics
 │       └── health.py               # /health, /health/live, /health/ready
 ├── templates/                      # Frontend HTML templates
-│   └── index.html                  # Main SaaS dashboard shell (Overview, Analyze, Explorer, Analytics, Imports)
-├── static/                         # Static assets & modular JavaScript
+│   └── index.html                  # Accessible SaaS dashboard shell & semantic views
+├── static/                         # Static assets & modular browser ES6 JavaScript
 │   ├── css/
-│   │   └── app.css                 # SaaS design tokens, card styles, badges, focus rings, toast animations
+│   │   ├── app.css                 # Custom design tokens, card styles, badges & keyframe animations
+│   │   ├── tailwind-input.css      # Tailwind base/components/utilities directive entry point
+│   │   └── tailwind.min.css        # Precompiled, minified static production CSS (37.5 KB)
 │   ├── js/
-│   │   ├── api.js                  # Centralized REST API client wrapper
+│   │   ├── api.js                  # Centralized REST API client & error handler
+│   │   ├── app.js                  # Shell routing, navigation, modals, toasts & shortcuts
 │   │   ├── overview.js             # Overview KPI metrics & recent alert card controller
-│   │   ├── analyze.js              # Real-time sentiment prediction & persistence controller
+│   │   ├── analyze.js              # Single & bulk sentiment prediction controller
+│   │   ├── explain.js              # Client-side word perturbation explainability controller
 │   │   ├── explorer.js             # Feedback table, pagination, search & detail modal controller
-│   │   ├── analytics.js            # Chart.js data visualization & temporal trend controller
+│   │   ├── analytics.js            # Chart.js visualizations & confidence distribution controller
 │   │   ├── imports.js              # Drag-and-drop CSV batch import & export controller
-│   │   └── app.js                  # Shell routing, navigation, modals & toast notification manager
+│   │   ├── history.js              # Local IndexedDB analysis history view controller
+│   │   ├── sw.js                   # Service Worker shell cache & offline handler
+│   │   └── lib/
+│   │       ├── chart.bundle.js     # Lazy-loaded Chart.js bundle (loaded only on #analytics)
+│   │       ├── idb.js              # Lightweight IndexedDB Promise wrapper
+│   │       └── store.js            # History storage facade & query engine
+│   ├── icons/                      # PWA icons & manifest assets
+│   ├── manifest.webmanifest        # Progressive Web App manifest
 │   └── theme.js                    # Zero-FOUC light/dark theme persistence controller
-├── tests/                          # Automated integration, reliability & frontend test suites
-├── render.yaml                     # Infrastructure-as-Code deployment blueprint
+├── tests/
+│   ├── frontend/                   # Frontend unit tests (Node.js test runner)
+│   └── ...                         # Backend pytest suites (API, models, DB, CSV)
+├── reports/                        # Lighthouse audit reports & performance benchmarks
+├── tailwind.config.js              # Tailwind CSS build configuration & dynamic class safelist
+├── package.json                    # Frontend linting, formatting & test runner configuration
 ├── requirements.txt                # Production backend dependencies
-└── .env.example                    # Environment configuration template
+└── render.yaml                     # Infrastructure-as-Code deployment blueprint
 ```
+
+### Architectural Principles
+1. **Zero-Build Browser Runtime**: Client-side code runs as native ES6 modules (`import`/`export`). No Webpack, Vite, or Babel build step is required to serve the frontend, eliminating build-pipeline complexity.
+2. **Static Tailwind CSS**: The browser loads pre-compiled, static CSS (`static/css/tailwind.min.css`). The dynamic CDN compiler (`cdn.tailwindcss.com`) is **not** used in production, saving ~350KB of JavaScript execution and eliminating layout shift.
+3. **Hash Routing**: Clean client-side routing via `#overview`, `#analyze`, `#explorer`, `#analytics`, `#import-export`, and `#history` without requiring complex server-side route rewrites.
+4. **Data Privacy Isolation**: Local analysis history is strictly isolated to browser IndexedDB storage and is never transmitted to the backend server. Server-persisted feedback records require an explicit "Save to Database" action or submission via `/feedback`.
+5. **Graceful Offline Degradation**: When disconnected, the Service Worker serves all shell assets from cache (`sentiment-pulse-shell-v2`). The user interface clearly signals the offline state via an accessible top banner and sidebar badge, while preserving full access to IndexedDB history.
 
 ---
 
 ## 💻 Local Setup & Installation
 
 ### 1. Prerequisites
-- Python 3.10+
-- SQLite (included) or PostgreSQL 14+
+- **Python**: 3.10+
+- **Node.js**: 18.0+ (required for frontend testing and Tailwind CSS compilation)
+- **Database**: SQLite (default, zero-configuration) or PostgreSQL 14+
 
-### 2. Clone & Setup Virtual Environment
+### 2. Clone Repository & Setup Virtual Environment
 ```bash
 git clone https://github.com/ranitadhikari2023/sentiment-pulse-app.git
 cd sentiment-pulse-app
 
-# Create and activate virtual environment
+# Create Python virtual environment
 python -m venv venv
 
+# Activate virtual environment
 # Windows (PowerShell):
 .\venv\Scripts\Activate.ps1
-
 # Linux / macOS:
 source venv/bin/activate
 ```
 
-### 3. Install Dependencies
+### 3. Install Backend & Frontend Dependencies
 ```bash
+# Install Python backend dependencies
 pip install -r requirements.txt
+
+# Install Node.js tooling (ESLint, Prettier)
+npm install
 ```
 
 ### 4. Configure Environment
 ```bash
+# Copy example environment configuration
 cp .env.example .env
 ```
-*(Optionally adjust `DATABASE_URL` in `.env`)*
+*(By default, `DATABASE_URL` is configured to use local SQLite: `sqlite:///./sentiment.db`)*
 
 ### 5. Run Database Migrations
 ```bash
-# Upgrade database to latest revision
+# Execute Alembic schema migrations
 alembic upgrade head
 ```
 
@@ -124,43 +188,86 @@ alembic upgrade head
 ```bash
 uvicorn main:app --reload --port 8000
 ```
-Open **`http://127.0.0.1:8000`** in your browser.  
-Interactive OpenAPI documentation is available at **`http://127.0.0.1:8000/docs`**.
+- Open **`http://127.0.0.1:8000`** in your browser.
+- Interactive Swagger API docs: **`http://127.0.0.1:8000/docs`**.
+- OpenAPI JSON specification: **`http://127.0.0.1:8000/openapi.json`**.
 
 ---
 
-## 🧪 Testing
+## 🎨 Tailwind CSS Regeneration
 
-The repository includes an automated test suite covering inference accuracy, feedback CRUD, database transactions, batch processing, CSV formula injection protection, health probes, and frontend static asset & template delivery.
+The application relies on static, minified CSS rather than the runtime Tailwind CDN.
+
+### Configuration & Source Files
+- **Tailwind Config**: [`tailwind.config.js`](./tailwind.config.js) (scans `./templates/**/*.html` and `./static/**/*.js`, with a dynamic utility safelist).
+- **CSS Input**: [`static/css/tailwind-input.css`](./static/css/tailwind-input.css) (contains `@tailwind base;`, `@tailwind components;`, `@tailwind utilities;`).
+- **CSS Output**: [`static/css/tailwind.min.css`](./static/css/tailwind.min.css) (precompiled, minified static stylesheet, ~37.5 KB).
+
+### How to Regenerate Tailwind CSS
+Whenever you modify template markup or add new Tailwind classes in JavaScript, regenerate the static CSS file:
 
 ```bash
-# Run the full test suite with pytest
-pytest -v
-
-# Run diagnostic script on hand-written sanity samples and linguistic stress tests
-python check_handwritten.py
+# Regenerate static Tailwind CSS using npx
+npx tailwindcss -i static/css/tailwind-input.css -o static/css/tailwind.min.css --minify
 ```
 
-### Frontend Unit Testing & Code Quality
+> **Important**: The browser does **NOT** load `https://cdn.tailwindcss.com`. All utility classes are resolved at compile time into `tailwind.min.css`, ensuring sub-second first contentful paint and zero CDN runtime overhead.
 
-Frontend logic is zero-build browser ES modules. Pure helpers (formatters, batch chunker) and API cold-start resilience are tested using Node.js's built-in test runner (`node --test`), requiring zero test framework dependencies.
+---
 
+## 🧪 Testing & Code Quality
+
+The repository includes a comprehensive, multi-layer automated test suite spanning backend inference, API contracts, database operations, frontend logic, linting, and formatting.
+
+### 1. Frontend Unit Tests (Node.js Test Runner)
 ```bash
-# Run frontend unit tests (Node built-in test runner)
 npm test
+```
+Runs the zero-dependency test suite via Node.js's built-in test runner (`tests/frontend/**/*.test.js`). Verifies pure helper algorithms, batch chunking, pagination math, explainability tokenization, IndexedDB wrappers, and offline mock degradation.
 
-# Run ESLint across static modules and tests
+### 2. Frontend Code Quality & Formatting
+```bash
+# Check JavaScript code style and syntax rules
 npm run lint
 
 # Check code formatting with Prettier
 npm run format:check
 
-# Auto-format frontend code
+# Auto-format JavaScript source files
 npm run format
 ```
 
+### 3. Backend Unit & Integration Tests (pytest)
+```bash
+# Run backend test suite (Python virtual environment activated)
+pytest -v
+```
+Verifies FastAPI routing, ONNX transformer inference accuracy, database transactions, batch prediction chunking, CSV formula injection protection, sliding-window rate limiting, and health probes.
+
+### 4. Handwritten Diagnostic Checks
+```bash
+python check_handwritten.py
+```
+Executes targeted linguistic stress tests and sanity phrases through the ONNX model to verify edge-case sentiment polarity.
+
 ---
 
+## 📸 Visual Tour & Application Views
+
+The Sentiment Pulse web interface is built with responsive desktop and mobile viewports in mind:
+
+| View | Route | Key Capabilities |
+| :--- | :--- | :--- |
+| **Executive Overview** | `/#overview` | KPI metric cards (Total Feedback, Avg Sentiment, Positive/Negative % ratios), 7-day trend chart, and proactive recent negative feedback alert list. |
+| **Analyze Playground** | `/#analyze` | Single review inference with confidence score, word-level explainability attribution, and sequential bulk paste mode (up to 100 items) with CSV export. |
+| **Feedback Explorer** | `/#explorer` | Paginated review table with full-text search, multi-field filtering (sentiment, rating, category, source channel), and accessible detail inspection modal. |
+| **BI Analytics** | `/#analytics` | Lazy-loaded Chart.js visual dashboard showing daily sentiment volume, overall distribution, category polarity, source breakdown, and model confidence buckets. |
+| **Import & Export** | `/#import-export` | Drag-and-drop CSV batch upload with background chunking and secure, formula-sanitized CSV export. |
+| **Analysis History** | `/#history` | Private, browser-local IndexedDB record viewer with real-time text search, sentiment filters, date/confidence sorting, and rehydration without re-inference. |
+
+*(Note: Live browser verification was executed across desktop `1280x800` and mobile `390x844` viewports. Complete interactive test recordings are stored in the development artifacts repository).*
+
+---
 
 ## 📚 API Reference
 
@@ -174,8 +281,8 @@ npm run format
 ### Sentiment Predictions
 | Method | Endpoint | Description | Auth |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/predict` | Real-time sentiment prediction for single string | None |
-| `POST` | `/predict/batch` | Batch prediction for up to 50 text items | None |
+| `POST` | `/predict` | Real-time sentiment prediction for a single string | None |
+| `POST` | `/predict/batch` | Batch prediction for up to 50 text items per request | None |
 
 ### Customer Feedback Management
 | Method | Endpoint | Description | Auth |
@@ -194,17 +301,41 @@ npm run format
 | `GET` | `/feedback/import/{id}`| Poll status and progress of import job | None |
 | `GET` | `/feedback/analytics` | Retrieve sentiment distributions, daily trends & churn alerts | None |
 
-*(All endpoints are also available with `/api/` prefix for client compatibility)*
-
 ---
 
 ## 🔒 Security Architecture
 
-1. **CSV Formula Injection:** User-supplied strings starting with `=`, `+`, `-`, `@`, `\t`, or `\r` are sanitized by prepending a single quote (`'`) to protect spreadsheet users.
-2. **Rate Limiting:** IP-based sliding window rate limiter protects server endpoints against abuse.
-3. **Structured Observability:** Unique correlation IDs (`X-Request-ID`) and duration tracking (`X-Process-Time`) on all incoming requests.
-4. **CORS Security:** Configurable via `ALLOWED_ORIGINS` to control browser cross-origin access.
-5. **Separated Probes:** Independent liveness and readiness health checks prevent traffic blackholing during cold starts.
+1. **CSV Formula Injection Sanitization**: Exported CSV fields beginning with `=`, `+`, `-`, `@`, `\t`, or `\r` are automatically prepended with a single quote (`'`), neutralizing spreadsheet macro execution vulnerabilities in Microsoft Excel and Google Sheets.
+2. **Sliding-Window Rate Limiting**: In-memory IP rate limiter defends backend inference endpoints from denial-of-service spikes while supporting burst traffic.
+3. **Structured Observability**: Every HTTP request receives a unique `X-Request-ID` correlation header and execution duration tracking via `X-Process-Time`.
+4. **CORS Control**: Configurable via `ALLOWED_ORIGINS` in `.env` to restrict browser cross-origin requests in production.
+5. **Separated Liveness & Readiness Probes**: Independent `/health/live` and `/health/ready` endpoints ensure container orchestrators (e.g., Kubernetes, Render) route traffic only after model weights and database connections are primed.
+
+---
+
+## 🌐 Offline & PWA Architecture
+
+Sentiment Pulse delivers an offline application shell designed to uphold user trust and prevent false data representation:
+
+- **Service Worker Lifecycle**: [`static/js/sw.js`](./static/js/sw.js) registers on startup and pre-caches the 26 critical shell assets under the versioned cache `sentiment-pulse-shell-v2`.
+- **Honest Offline Handling**: Unlike naive PWAs that return mock or cached predictions, Sentiment Pulse honestly blocks `/predict` and `/feedback` submissions when offline, displaying informative toast messages and disabled action states.
+- **Local Data Availability**: The IndexedDB analysis history store remains fully interactive offline, enabling users to search, filter, sort, and inspect past predictions without network connectivity.
+- **Seamless Online Recovery**: Connection status is monitored via window `online`/`offline` listeners. When connectivity returns, the offline warning banner automatically dismisses, and server-dependent features re-engage immediately.
+
+---
+
+## # Backend follow-ups
+
+The following three architectural follow-ups are documented for future backend iterations:
+
+1. **Confidence buckets on `/feedback/analytics`**:
+   A `confidence_buckets` field on the analytics endpoint would eliminate the client's bounded multi-page confidence aggregation and provide more efficient server-side aggregation. Currently, the client fetches up to 5 pages of feedback records (`GET /feedback?page=X&page_size=100`) to compute distribution metrics. Implementing this aggregation directly in SQL would reduce network overhead to a single sub-10ms query.
+
+2. **Server-side explainability endpoint**:
+   The current explainability workflow depends on client-side orchestration and network calls (`/predict/batch` token masking). A dedicated backend explainability endpoint could centralize, parallelize, and optimize the attribution operation directly within the ONNX execution session, eliminating multiple HTTP roundtrips.
+
+3. **Optional history synchronization**:
+   Phase 2 analysis history is intentionally stored in browser-local IndexedDB to preserve privacy and minimize database bloat. An optional future synchronization feature could allow authenticated users to selectively sync their local history to the cloud while maintaining strict tenant isolation, user authorization, and data privacy controls.
 
 ---
 
@@ -213,7 +344,7 @@ npm run format
 The project includes an Infrastructure-as-Code blueprint in [`render.yaml`](./render.yaml).
 
 1. Connect your repository to [Render](https://render.com).
-2. Render provisions both the **Web Service** and managed **PostgreSQL Database** (`sentiment-pulse-db`).
+2. Render provisions the **Web Service** and managed **PostgreSQL Database** (`sentiment-pulse-db`).
 3. Build command:
    ```bash
    pip install -r requirements.txt && alembic upgrade head
