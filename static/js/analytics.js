@@ -2,11 +2,16 @@
  * Sentiment Pulse - Analytics Dashboard Controller (analytics.js)
  * Visualizes customer satisfaction trends, category comparisons, and sentiment distributions
  * using Chart.js with dynamic light/dark theme adaptation.
+ *
+ * Phase 4: Adds client-side confidence distribution aggregation and visualization
+ * with strict 4-bucket boundaries, multi-page feedback querying, and cache separation.
  */
 
 const AnalyticsController = {
   charts: {},
   currentRange: 'all',
+  currentSentiment: 'all',
+  confidenceCache: new Map(),
 
   init() {
     this.bindEvents();
@@ -34,19 +39,34 @@ const AnalyticsController = {
           'dark:text-slate-300'
         );
 
-        this.currentRange = btn.getAttribute('data-range');
+        this.currentRange = btn.getAttribute('data-range') || 'all';
         this.loadAnalytics();
       });
     });
+
+    // Confidence sentiment filter
+    const sentimentSelect = document.getElementById('analytics-confidence-sentiment');
+    if (sentimentSelect) {
+      sentimentSelect.addEventListener('change', (e) => {
+        this.currentSentiment = e.target.value || 'all';
+        this.updateConfidenceDistribution();
+      });
+    }
 
     // Listen to theme changes to dynamically restyle charts
     window.addEventListener('theme-changed', () => {
       this.updateChartThemes();
     });
 
-    // Refresh on feedback modifications
-    window.addEventListener('feedback-created', () => this.loadAnalytics());
-    window.addEventListener('feedback-deleted', () => this.loadAnalytics());
+    // Invalidate caches and refresh on feedback modifications
+    window.addEventListener('feedback-created', () => {
+      this.confidenceCache.clear();
+      this.loadAnalytics();
+    });
+    window.addEventListener('feedback-deleted', () => {
+      this.confidenceCache.clear();
+      this.loadAnalytics();
+    });
   },
 
   getDateFilters() {
@@ -63,6 +83,89 @@ const AnalyticsController = {
     return {};
   },
 
+  /**
+   * Fetch feedback records client-side across up to 5 pages (100 items/page, max 500 records)
+   * and aggregate into confidence distribution buckets. Results are cached per range + sentiment.
+   */
+  async fetchConfidenceData(range, sentiment) {
+    const helper = window.ConfidenceHelper;
+    const cacheKey = helper
+      ? helper.getConfidenceCacheKey(range, sentiment)
+      : `${range}_${sentiment}`;
+
+    if (this.confidenceCache.has(cacheKey)) {
+      return this.confidenceCache.get(cacheKey);
+    }
+
+    const MAX_PAGES = 5;
+    const PAGE_SIZE = 100;
+    const allItems = [];
+
+    let startDate = null;
+    if (range === '7d') {
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+    } else if (range === '30d') {
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+    }
+
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const params = {
+        page,
+        page_size: PAGE_SIZE,
+      };
+
+      if (sentiment && sentiment !== 'all') {
+        params.sentiment = sentiment;
+      }
+      if (startDate) {
+        params.start_date = startDate.toISOString();
+      }
+
+      const res = await window.api.listFeedback(params);
+      const items = res && Array.isArray(res.items) ? res.items : [];
+      allItems.push(...items);
+
+      // Stop condition 1: Page returned fewer than PAGE_SIZE items (end of dataset)
+      if (items.length < PAGE_SIZE) {
+        break;
+      }
+
+      // Stop condition 2: Reached total_pages reported by backend
+      if (res && typeof res.total_pages === 'number' && page >= res.total_pages) {
+        break;
+      }
+    }
+
+    const aggregation = helper
+      ? helper.aggregateConfidence(allItems, { startDate, sentiment })
+      : {
+          buckets: { '0–50%': 0, '50–70%': 0, '70–90%': 0, '90–100%': 0 },
+          counts: [0, 0, 0, 0],
+          totalValid: 0,
+          totalSkipped: 0,
+          hasData: false,
+        };
+
+    this.confidenceCache.set(cacheKey, aggregation);
+    return aggregation;
+  },
+
+  /**
+   * Dedicated update method for the confidence distribution chart
+   * allowing fast re-filtering by sentiment without refetching the entire dashboard.
+   */
+  async updateConfidenceDistribution() {
+    try {
+      const aggregation = await this.fetchConfidenceData(this.currentRange, this.currentSentiment);
+      this.renderConfidenceChart(aggregation);
+    } catch (err) {
+      console.error('Confidence distribution update error:', err);
+      this.renderConfidenceChart(null);
+    }
+  },
+
   async loadAnalytics() {
     const emptyState = document.getElementById('analytics-empty-state');
     const skeletonView = document.getElementById('analytics-skeleton-view');
@@ -74,7 +177,15 @@ const AnalyticsController = {
 
     try {
       const filters = this.getDateFilters();
-      const data = await window.api.getAnalytics(filters);
+
+      // Fetch main analytics and confidence data concurrently
+      const [data, confidenceAggregation] = await Promise.all([
+        window.api.getAnalytics(filters),
+        this.fetchConfidenceData(this.currentRange, this.currentSentiment).catch((err) => {
+          console.warn('Non-fatal: confidence aggregation fetch failed:', err);
+          return null;
+        }),
+      ]);
 
       if (skeletonView) skeletonView.classList.add('hidden');
 
@@ -90,11 +201,14 @@ const AnalyticsController = {
       // Update KPI highlights
       this.updateSummaryPills(data);
 
-      // Render Charts
+      // Render Standard Charts
       this.renderDistributionChart(data.sentiment_counts);
       this.renderTrendsChart(data.sentiment_trends);
       this.renderCategoryChart(data.category_breakdown);
       this.renderSourceChart(data.source_breakdown);
+
+      // Render Phase 4 Confidence Distribution Chart
+      this.renderConfidenceChart(confidenceAggregation);
 
       // Render Negative Feedback Deep-Dive
       this.renderNegativeDeepDive(data.recent_negative_feedback);
@@ -313,6 +427,104 @@ const AnalyticsController = {
         },
         plugins: {
           legend: { display: false },
+        },
+      },
+    });
+  },
+
+  /**
+   * Render Phase 4 Confidence Distribution Bar Chart
+   * Displays counts across 4 deterministic buckets: 0–50%, 50–70%, 70–90%, 90–100%.
+   * Handles empty or missing data cleanly with an empty state element.
+   */
+  renderConfidenceChart(aggregation) {
+    const canvas = document.getElementById('chart-confidence');
+    const emptyEl = document.getElementById('chart-confidence-empty');
+    const wrapperEl = document.getElementById('chart-confidence-wrapper');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    // Chart.js instance lifecycle: destroy existing instance to prevent duplicates or memory leaks
+    if (this.charts.confidence) {
+      this.charts.confidence.destroy();
+      this.charts.confidence = null;
+    }
+
+    // Empty state condition: no aggregation or no usable confidence values
+    if (!aggregation || !aggregation.hasData || aggregation.totalValid === 0) {
+      if (wrapperEl) wrapperEl.classList.add('hidden');
+      if (emptyEl) emptyEl.classList.remove('hidden');
+      return;
+    }
+
+    if (emptyEl) emptyEl.classList.add('hidden');
+    if (wrapperEl) wrapperEl.classList.remove('hidden');
+
+    const { textColor, gridColor, tooltipBg, tooltipText } = this.getThemeColors();
+    const helper = window.ConfidenceHelper;
+    const labels = helper
+      ? helper.CONFIDENCE_BUCKET_LABELS
+      : ['0–50%', '50–70%', '70–90%', '90–100%'];
+    const data = aggregation.counts;
+
+    this.charts.confidence = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Feedback Records',
+            data,
+            backgroundColor: [
+              '#f43f5e', // 0–50% (lower certainty / potential risk)
+              '#f59e0b', // 50–70% (moderate certainty)
+              '#3b82f6', // 70–90% (good certainty)
+              '#10b981', // 90–100% (high certainty)
+            ],
+            borderRadius: 6,
+            borderSkipped: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            ticks: {
+              color: textColor,
+              font: { family: 'Inter', size: 10, weight: '500' },
+            },
+            grid: { display: false },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: textColor,
+              font: { family: 'Inter', size: 10 },
+              precision: 0,
+            },
+            grid: { color: gridColor },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: tooltipBg,
+            titleColor: tooltipText,
+            bodyColor: tooltipText,
+            borderColor: gridColor,
+            borderWidth: 1,
+            padding: 10,
+            displayColors: true,
+            callbacks: {
+              label(context) {
+                const count = context.parsed.y || 0;
+                const total = aggregation.totalValid || 1;
+                const pct = ((count / total) * 100).toFixed(1);
+                return ` ${count} records (${pct}%)`;
+              },
+            },
+          },
         },
       },
     });
