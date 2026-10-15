@@ -22,22 +22,23 @@ describe('PWA & Offline Shell Helpers', () => {
   describe('Cache Version Generation', () => {
     it('generates the default deterministic cache name', () => {
       assert.equal(SHELL_CACHE_PREFIX, 'sentiment-pulse-shell-');
-      assert.equal(DEFAULT_SHELL_VERSION, 'v1');
-      assert.equal(getCacheName(), 'sentiment-pulse-shell-v1');
-      assert.equal(getCacheName(''), 'sentiment-pulse-shell-v1');
-      assert.equal(getCacheName(null), 'sentiment-pulse-shell-v1');
+      assert.equal(DEFAULT_SHELL_VERSION, 'v2');
+      assert.equal(getCacheName(), 'sentiment-pulse-shell-v2');
+      assert.equal(getCacheName(''), 'sentiment-pulse-shell-v2');
+      assert.equal(getCacheName(null), 'sentiment-pulse-shell-v2');
     });
 
     it('generates a versioned cache name when a specific version is provided', () => {
-      assert.equal(getCacheName('v2'), 'sentiment-pulse-shell-v2');
+      assert.equal(getCacheName('v3'), 'sentiment-pulse-shell-v3');
       assert.equal(getCacheName('2026-10-15'), 'sentiment-pulse-shell-2026-10-15');
-      assert.equal(getCacheName('  v3  '), 'sentiment-pulse-shell-v3');
+      assert.equal(getCacheName('  v4  '), 'sentiment-pulse-shell-v4');
     });
 
     it('includes essential local shell assets in the pre-cache list', () => {
       assert.ok(Array.isArray(SHELL_ASSETS));
       assert.ok(SHELL_ASSETS.includes('/'));
       assert.ok(SHELL_ASSETS.includes('/static/manifest.webmanifest'));
+      assert.ok(SHELL_ASSETS.includes('/static/css/tailwind.min.css'));
       assert.ok(SHELL_ASSETS.includes('/static/css/app.css'));
       assert.ok(SHELL_ASSETS.includes('/static/js/app.js'));
       assert.ok(SHELL_ASSETS.includes('/static/icons/icon-192x192.png'));

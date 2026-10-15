@@ -5,12 +5,12 @@
  */
 
 export const SHELL_CACHE_PREFIX = 'sentiment-pulse-shell-';
-export const DEFAULT_SHELL_VERSION = 'v1';
+export const DEFAULT_SHELL_VERSION = 'v2';
 
 /**
  * Generate versioned cache name.
  * @param {string} [version=DEFAULT_SHELL_VERSION]
- * @returns {string} e.g. "sentiment-pulse-shell-v1"
+ * @returns {string} e.g. "sentiment-pulse-shell-v2"
  */
 export function getCacheName(version = DEFAULT_SHELL_VERSION) {
   const v = version ? String(version).trim() : DEFAULT_SHELL_VERSION;
@@ -20,6 +20,7 @@ export function getCacheName(version = DEFAULT_SHELL_VERSION) {
 export const SHELL_ASSETS = [
   '/',
   '/static/manifest.webmanifest',
+  '/static/css/tailwind.min.css',
   '/static/css/app.css',
   '/static/theme.js',
   '/static/icons/icon-192x192.png',

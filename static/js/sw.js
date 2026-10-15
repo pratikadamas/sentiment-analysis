@@ -10,12 +10,13 @@
  * - Versioned cache cleanup during activation
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `sentiment-pulse-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
   '/',
   '/static/manifest.webmanifest',
+  '/static/css/tailwind.min.css',
   '/static/css/app.css',
   '/static/theme.js',
   '/static/icons/icon-192x192.png',

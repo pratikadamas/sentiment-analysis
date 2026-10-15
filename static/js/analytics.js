@@ -12,10 +12,52 @@ const AnalyticsController = {
   currentRange: 'all',
   currentSentiment: 'all',
   confidenceCache: new Map(),
+  _chartLoadingPromise: null,
+
+  async ensureChart() {
+    if (typeof window !== 'undefined' && window.Chart) {
+      return window.Chart;
+    }
+
+    if (this._chartLoadingPromise) {
+      return this._chartLoadingPromise;
+    }
+
+    this._chartLoadingPromise = (async () => {
+      // 1. Try native ES module dynamic import
+      try {
+        const mod = await import('https://cdn.jsdelivr.net/npm/chart.js@4.4.2/auto/+esm');
+        const ChartClass = mod.Chart || mod.default;
+        if (ChartClass) {
+          window.Chart = ChartClass;
+          return window.Chart;
+        }
+      } catch (esmErr) {
+        console.warn(
+          'Native ESM dynamic import for Chart.js failed, falling back to script loader:',
+          esmErr
+        );
+      }
+
+      // 2. Fallback: dynamic script loader
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js';
+        script.async = true;
+        script.onload = () => resolve(window.Chart);
+        script.onerror = (e) => reject(new Error('Failed to load Chart.js: ' + e));
+        document.head.appendChild(script);
+      });
+    })();
+
+    return this._chartLoadingPromise;
+  },
 
   init() {
     this.bindEvents();
-    this.loadAnalytics();
+    if (window.location.hash === '#analytics') {
+      this.loadAnalytics();
+    }
   },
 
   bindEvents() {
@@ -163,6 +205,7 @@ const AnalyticsController = {
     }
 
     try {
+      await this.ensureChart();
       const aggregation = await this.fetchConfidenceData(this.currentRange, this.currentSentiment);
       this.renderConfidenceChart(aggregation);
     } catch (err) {
@@ -214,6 +257,9 @@ const AnalyticsController = {
 
       // Update KPI highlights
       this.updateSummaryPills(data);
+
+      // Lazy-load Chart.js dynamically only when Analytics view requires it
+      await this.ensureChart();
 
       // Render Standard Charts
       this.renderDistributionChart(data.sentiment_counts);
