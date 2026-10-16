@@ -54,5 +54,21 @@
     "global": "Chart",
     "tier": 2,
     "bytes": 205214
+  },
+  "three": {
+    "file": "three.module.js",
+    "version": "0.186.1",
+    "sha384": "sha384-m8JoFX52V6NGv2usipnlLJKnJfL7IE8dbniPDDCSGSQv3Hm4n6PjfV6syVwfuoRc",
+    "global": "THREE",
+    "tier": 2,
+    "bytes": 662772
+  },
+  "threeCore": {
+    "file": "three.core.js",
+    "version": "0.186.1",
+    "sha384": "sha384-mdKeCwPEcbDvzaxwhm+MVuLoMou+E7jQqrs4tmu/n8HBYPGI1kZt0MkJxlMR4zFM",
+    "global": "THREECore",
+    "tier": 2,
+    "bytes": 1458113
   }
 }

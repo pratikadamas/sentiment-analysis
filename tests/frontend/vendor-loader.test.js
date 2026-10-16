@@ -26,7 +26,15 @@ describe('Vendor Loader Subsystem', () => {
 
     it('contains all required vendor libraries in manifest', async () => {
       const manifest = await VendorLoader.getManifest();
-      const requiredVendors = ['gsap', 'scrollTrigger', 'flip', 'countUp', 'splitType', 'confetti', 'chart'];
+      const requiredVendors = [
+        'gsap',
+        'scrollTrigger',
+        'flip',
+        'countUp',
+        'splitType',
+        'confetti',
+        'chart',
+      ];
       requiredVendors.forEach((vendor) => {
         assert.ok(manifest[vendor], `Manifest missing ${vendor}`);
         assert.ok(manifest[vendor].file, `${vendor} missing file property`);

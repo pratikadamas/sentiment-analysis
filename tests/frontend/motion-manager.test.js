@@ -175,7 +175,11 @@ describe('AnimationManager Subsystem', () => {
       );
 
       assert.equal(res, null);
-      assert.equal(completed, true, 'onComplete callback must be invoked even under reduced motion');
+      assert.equal(
+        completed,
+        true,
+        'onComplete callback must be invoked even under reduced motion'
+      );
     });
 
     it('playFlip returns null when state is missing or null', async () => {

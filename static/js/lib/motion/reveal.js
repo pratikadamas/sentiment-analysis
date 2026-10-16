@@ -38,10 +38,7 @@ export const RevealEngine = {
     // Check for parent or self stagger container
     const staggerParent = element.closest('[data-stagger]');
     if (staggerParent) {
-      const staggerStep = this.parseAttributeNumber(
-        staggerParent.getAttribute('data-stagger'),
-        50
-      );
+      const staggerStep = this.parseAttributeNumber(staggerParent.getAttribute('data-stagger'), 50);
       const siblings = Array.from(staggerParent.querySelectorAll('[data-reveal]'));
       const index = siblings.indexOf(element);
       if (index >= 0) {

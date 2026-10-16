@@ -22,16 +22,16 @@ describe('PWA & Offline Shell Helpers', () => {
   describe('Cache Version Generation', () => {
     it('generates the default deterministic cache name', () => {
       assert.equal(SHELL_CACHE_PREFIX, 'sentiment-pulse-shell-');
-      assert.equal(DEFAULT_SHELL_VERSION, 'v3');
-      assert.equal(getCacheName(), 'sentiment-pulse-shell-v3');
-      assert.equal(getCacheName(''), 'sentiment-pulse-shell-v3');
-      assert.equal(getCacheName(null), 'sentiment-pulse-shell-v3');
+      assert.equal(DEFAULT_SHELL_VERSION, 'v4');
+      assert.equal(getCacheName(), 'sentiment-pulse-shell-v4');
+      assert.equal(getCacheName(''), 'sentiment-pulse-shell-v4');
+      assert.equal(getCacheName(null), 'sentiment-pulse-shell-v4');
     });
 
     it('generates a versioned cache name when a specific version is provided', () => {
-      assert.equal(getCacheName('v4'), 'sentiment-pulse-shell-v4');
+      assert.equal(getCacheName('v5'), 'sentiment-pulse-shell-v5');
       assert.equal(getCacheName('2026-10-15'), 'sentiment-pulse-shell-2026-10-15');
-      assert.equal(getCacheName('  v5  '), 'sentiment-pulse-shell-v5');
+      assert.equal(getCacheName('  v6  '), 'sentiment-pulse-shell-v6');
     });
 
     it('includes essential local shell assets in the pre-cache list', () => {
@@ -184,6 +184,16 @@ describe('PWA & Offline Shell Helpers', () => {
 
       const obsolete = getObsoleteCaches(allCaches, 'sentiment-pulse-shell-v1');
       assert.deepEqual(obsolete, ['sentiment-pulse-shell-v0', 'sentiment-pulse-shell-beta']);
+    });
+
+    it('safely purges v3 caches upon upgrading to v4 active shell', () => {
+      const allCaches = [
+        'sentiment-pulse-shell-v3',
+        'sentiment-pulse-shell-v4',
+        'user-local-storage-backup',
+      ];
+      const obsolete = getObsoleteCaches(allCaches, 'sentiment-pulse-shell-v4');
+      assert.deepEqual(obsolete, ['sentiment-pulse-shell-v3']);
     });
 
     it('returns empty array when all caches match the active cache version', () => {

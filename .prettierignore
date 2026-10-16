@@ -1,0 +1,6 @@
+node_modules/
+venv/
+.pytest_cache/
+static/js/lib/vendor/
+static/css/tailwind.min.css
+sentiment.db

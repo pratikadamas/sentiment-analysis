@@ -54,6 +54,20 @@ const EMBEDDED_MANIFEST = {
     global: 'Chart',
     tier: 2,
   },
+  three: {
+    file: 'three.module.js',
+    version: '0.186.1',
+    sha384: 'sha384-m8JoFX52V6NGv2usipnlLJKnJfL7IE8dbniPDDCSGSQv3Hm4n6PjfV6syVwfuoRc',
+    global: 'THREE',
+    tier: 2,
+  },
+  threeCore: {
+    file: 'three.core.js',
+    version: '0.186.1',
+    sha384: 'sha384-mdKeCwPEcbDvzaxwhm+MVuLoMou+E7jQqrs4tmu/n8HBYPGI1kZt0MkJxlMR4zFM',
+    global: 'THREECore',
+    tier: 2,
+  },
 };
 
 export const VendorLoader = {
@@ -96,7 +110,11 @@ export const VendorLoader = {
     }
 
     // Only attempt relative URL fetch in real browser window context with document
-    if (typeof window !== 'undefined' && typeof window.document !== 'undefined' && typeof fetch === 'function') {
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.document !== 'undefined' &&
+      typeof fetch === 'function'
+    ) {
       try {
         const res = await fetch(`${this._vendorBasePath}vendor.manifest.json`);
         if (res.ok) {
@@ -106,7 +124,10 @@ export const VendorLoader = {
           return this._manifest;
         }
       } catch (err) {
-        console.warn('[VendorLoader] Could not fetch remote manifest, using embedded default:', err);
+        console.warn(
+          '[VendorLoader] Could not fetch remote manifest, using embedded default:',
+          err
+        );
       }
     }
 
@@ -127,7 +148,8 @@ export const VendorLoader = {
     if (normalizedKey === 'gsap') return window.gsap || null;
     if (normalizedKey === 'scrolltrigger') return window.ScrollTrigger || null;
     if (normalizedKey === 'flip') return window.Flip || null;
-    if (normalizedKey === 'split-type' || normalizedKey === 'splittype') return window.SplitType || null;
+    if (normalizedKey === 'split-type' || normalizedKey === 'splittype')
+      return window.SplitType || null;
     if (normalizedKey === 'confetti') return window.confetti || null;
     if (normalizedKey === 'chart') return window.Chart || null;
     if (normalizedKey === 'countup') {
@@ -204,7 +226,10 @@ export const VendorLoader = {
         };
 
         script.onerror = (err) => {
-          console.warn(`[VendorLoader] Failed to load local vendor "${vendorKey}" from ${localUrl}:`, err);
+          console.warn(
+            `[VendorLoader] Failed to load local vendor "${vendorKey}" from ${localUrl}:`,
+            err
+          );
           // Never throw or crash the application on animation vendor failure
           resolve(null);
         };

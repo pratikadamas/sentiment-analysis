@@ -49,9 +49,24 @@ describe('ChartsMotion Subsystem', () => {
       const config = ChartsMotion.getAnimationConfig('stagedBar');
       assert.strictEqual(typeof config.animation.delay, 'function');
 
-      const delay0 = config.animation.delay({ type: 'data', mode: 'default', dataIndex: 0, datasetIndex: 0 });
-      const delay1 = config.animation.delay({ type: 'data', mode: 'default', dataIndex: 1, datasetIndex: 0 });
-      const delaySet1 = config.animation.delay({ type: 'data', mode: 'default', dataIndex: 0, datasetIndex: 1 });
+      const delay0 = config.animation.delay({
+        type: 'data',
+        mode: 'default',
+        dataIndex: 0,
+        datasetIndex: 0,
+      });
+      const delay1 = config.animation.delay({
+        type: 'data',
+        mode: 'default',
+        dataIndex: 1,
+        datasetIndex: 0,
+      });
+      const delaySet1 = config.animation.delay({
+        type: 'data',
+        mode: 'default',
+        dataIndex: 0,
+        datasetIndex: 1,
+      });
 
       assert.strictEqual(delay0, 0);
       assert.ok(delay1 > delay0, 'Later dataIndex should have higher delay');

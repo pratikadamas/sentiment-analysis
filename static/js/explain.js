@@ -633,7 +633,8 @@ export const ExplainabilityController = {
           b.style.transform = 'scale(0.95) translateY(2px)';
           const delay = Math.min(i * 35, 450);
           setTimeout(() => {
-            b.style.transition = 'opacity 180ms ease-out, transform 180ms cubic-bezier(0.2, 0.8, 0.4, 1)';
+            b.style.transition =
+              'opacity 180ms ease-out, transform 180ms cubic-bezier(0.2, 0.8, 0.4, 1)';
             b.style.opacity = '1';
             b.style.transform = 'none';
           }, delay);

@@ -79,7 +79,11 @@ describe('Counters Subsystem', () => {
       try {
         await Counters.animate(mockElement, '73.4%');
         assert.strictEqual(mockElement.textContent, '73.4%');
-        assert.strictEqual(loaderCalled, false, 'VendorLoader should not be called under reduced motion');
+        assert.strictEqual(
+          loaderCalled,
+          false,
+          'VendorLoader should not be called under reduced motion'
+        );
       } finally {
         VendorLoader.loadVendor = origLoad;
       }
@@ -157,7 +161,11 @@ describe('Counters Subsystem', () => {
 
         // Second call with same value
         await Counters.animate(mockElement, 50);
-        assert.strictEqual(countUpCalls, 1, 'CountUp should not be called again for duplicate value');
+        assert.strictEqual(
+          countUpCalls,
+          1,
+          'CountUp should not be called again for duplicate value'
+        );
       } finally {
         VendorLoader.loadVendor = origLoad;
       }

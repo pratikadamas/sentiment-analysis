@@ -18,7 +18,7 @@ export const Counters = {
    */
   parseValue(val) {
     if (typeof val === 'number') {
-      const decimals = Number.isInteger(val) ? 0 : (String(val).split('.')[1]?.length || 0);
+      const decimals = Number.isInteger(val) ? 0 : String(val).split('.')[1]?.length || 0;
       return { num: val, prefix: '', suffix: '', decimals, raw: String(val) };
     }
 
@@ -92,7 +92,10 @@ export const Counters = {
         ? options.formattingFn(parsed.num)
         : options.formatted !== undefined
           ? options.formatted
-          : typeof targetValue === 'string' && (targetValue.includes(',') || targetValue.endsWith('%') || targetValue.startsWith('$'))
+          : typeof targetValue === 'string' &&
+              (targetValue.includes(',') ||
+                targetValue.endsWith('%') ||
+                targetValue.startsWith('$'))
             ? targetValue
             : this.format(parsed.num, { prefix, suffix, decimals, useGrouping });
 

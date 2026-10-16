@@ -265,6 +265,9 @@ const AnalyzeController = {
     ) {
       window.ExplainabilityController.reset();
     }
+    if (window.ThreeRuntime && typeof window.ThreeRuntime.resetAnalyze === 'function') {
+      window.ThreeRuntime.resetAnalyze();
+    }
   },
 
   async executeAnalysis() {
@@ -313,6 +316,10 @@ const AnalyzeController = {
     if (emptyState) emptyState.classList.add('hidden');
     if (activeResults) activeResults.classList.add('hidden');
     if (skeleton) skeleton.classList.remove('hidden');
+
+    if (window.ThreeRuntime && typeof window.ThreeRuntime.setAnalyzing === 'function') {
+      window.ThreeRuntime.setAnalyzing();
+    }
 
     const t0 = performance.now();
 
@@ -469,6 +476,10 @@ const AnalyzeController = {
     const isReduced = window.AnimationManager && window.AnimationManager.isReducedMotion();
     if (!isReduced && window.AnimationManager && sentimentHero) {
       window.AnimationManager.play('resultCardEnter', sentimentHero, {}, 'analyze');
+    }
+
+    if (window.ThreeRuntime && typeof window.ThreeRuntime.setAnalyzeResult === 'function') {
+      window.ThreeRuntime.setAnalyzeResult(data);
     }
 
     if (latencyEl) {

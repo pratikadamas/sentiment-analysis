@@ -197,3 +197,29 @@
   }
 }
 
+/* ==============================================================================
+   3D Subsystem & WebGL Fallback Styles
+   ============================================================================== */
+#sentiment-3d-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: auto;
+  border-radius: inherit;
+}
+
+.no-webgl-fallback .fallback-2d-content {
+  display: flex !important;
+}
+
+.no-webgl-fallback canvas {
+  display: none !important;
+}
+
+.reduced-motion-3d canvas {
+  filter: saturate(0.9);
+}
+
+

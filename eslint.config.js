@@ -37,7 +37,16 @@ export default [
         Counters: 'writable',
         Skeletons: 'writable',
         ChartsMotion: 'writable',
-        MicroInteractions: 'writable'
+        MicroInteractions: 'writable',
+        THREE: 'readonly',
+        RendererManager: 'writable',
+        CameraRig: 'writable',
+        PerformanceGovernor: 'writable',
+        FallbackController: 'writable',
+        SceneManager: 'writable',
+        ThreeRuntime: 'writable',
+        OverviewScene: 'writable',
+        AnalyzeScene: 'writable'
       }
     },
     rules: {

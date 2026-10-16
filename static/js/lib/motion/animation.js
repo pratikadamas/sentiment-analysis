@@ -277,7 +277,11 @@ export const AnimationManager = {
     });
     this._activeAnimations.clear();
 
-    if (this._gsap && typeof this._gsap.killTweensOf === 'function' && typeof document !== 'undefined') {
+    if (
+      this._gsap &&
+      typeof this._gsap.killTweensOf === 'function' &&
+      typeof document !== 'undefined'
+    ) {
       try {
         this._gsap.killTweensOf('*');
       } catch {

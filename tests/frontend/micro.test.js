@@ -201,7 +201,10 @@ describe('MicroInteractions Subsystem', () => {
       it(`defines required preset "${presetName}" with valid properties`, () => {
         assert.ok(PRESETS[presetName], `PRESETS.${presetName} must be defined`);
         const preset = getPreset(presetName);
-        assert.ok(preset.to || preset.keyframes, `Preset ${presetName} must specify a 'to' or 'keyframes' block`);
+        assert.ok(
+          preset.to || preset.keyframes,
+          `Preset ${presetName} must specify a 'to' or 'keyframes' block`
+        );
       });
     });
   });

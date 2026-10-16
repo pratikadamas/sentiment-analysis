@@ -146,7 +146,11 @@ describe('Imports Delight Layer & Motion Subsystem', () => {
       };
 
       assert.equal(calculatePct(50, 100), 50);
-      assert.equal(calculatePct(98, 100), 95, 'In-flight processing must cap at 95% before COMPLETED');
+      assert.equal(
+        calculatePct(98, 100),
+        95,
+        'In-flight processing must cap at 95% before COMPLETED'
+      );
       assert.equal(calculatePct(100, 100), 95, 'Still caps at 95% while status is pending');
     });
   });

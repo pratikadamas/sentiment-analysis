@@ -10,7 +10,7 @@
  * - Versioned cache cleanup during activation
  */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `sentiment-pulse-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
@@ -59,6 +59,16 @@ const SHELL_ASSETS = [
   '/static/js/lib/vendor/split-type.min.js',
   '/static/js/lib/vendor/confetti.min.js',
   '/static/js/lib/vendor/chart.min.js',
+  '/static/js/lib/vendor/three.module.js',
+  '/static/js/lib/vendor/three.core.js',
+  '/static/js/3d/core/fallback-controller.js',
+  '/static/js/3d/core/performance-governor.js',
+  '/static/js/3d/core/renderer-manager.js',
+  '/static/js/3d/core/camera-rig.js',
+  '/static/js/3d/core/scene-manager.js',
+  '/static/js/3d/scenes/overview-scene.js',
+  '/static/js/3d/scenes/analyze-scene.js',
+  '/static/js/3d/three-runtime.js',
 ];
 
 const API_PREFIXES = ['/predict', '/feedback', '/api', '/health', '/docs', '/openapi.json'];

@@ -34,8 +34,14 @@ export const MicroInteractions = {
     document.addEventListener('pointerdown', this._boundPointerDown, { passive: true });
     document.addEventListener('pointerup', this._boundPointerUp, { passive: true });
     document.addEventListener('pointercancel', this._boundPointerCancel, { passive: true });
-    document.addEventListener('pointerenter', this._boundPointerEnter, { capture: true, passive: true });
-    document.addEventListener('pointerleave', this._boundPointerLeave, { capture: true, passive: true });
+    document.addEventListener('pointerenter', this._boundPointerEnter, {
+      capture: true,
+      passive: true,
+    });
+    document.addEventListener('pointerleave', this._boundPointerLeave, {
+      capture: true,
+      passive: true,
+    });
   },
 
   /**
@@ -132,7 +138,8 @@ export const MicroInteractions = {
       !target.hasAttribute('disabled');
 
     if (isInteractiveCard) {
-      target.style.transition = 'transform 150ms cubic-bezier(0.2, 0.8, 0.4, 1), box-shadow 150ms ease';
+      target.style.transition =
+        'transform 150ms cubic-bezier(0.2, 0.8, 0.4, 1), box-shadow 150ms ease';
       target.style.transform = 'translateY(-2px)';
     }
   },
@@ -326,7 +333,8 @@ export const MicroInteractions = {
     // CSS fallback
     dialog.style.opacity = '0';
     dialog.style.transform = 'scale(0.96) translateY(4px)';
-    dialog.style.transition = 'opacity 200ms ease-out, transform 200ms cubic-bezier(0.2, 0.8, 0.4, 1)';
+    dialog.style.transition =
+      'opacity 200ms ease-out, transform 200ms cubic-bezier(0.2, 0.8, 0.4, 1)';
     requestAnimationFrame(() => {
       dialog.style.opacity = '1';
       dialog.style.transform = 'none';

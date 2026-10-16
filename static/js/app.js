@@ -160,6 +160,10 @@ const App = {
       window.MicroInteractions.init();
     }
 
+    if (window.ThreeRuntime && typeof window.ThreeRuntime.init === 'function') {
+      window.ThreeRuntime.init().catch((err) => console.warn('[App] 3D init warning:', err));
+    }
+
     this.bindNavigation();
     this.initOfflineDetection();
     this.initServiceWorker();
@@ -231,16 +235,32 @@ const App = {
     if (window.AnimationManager) {
       window.AnimationManager.exitView(previousView);
     }
-    if (previousView === 'analytics' && window.AnalyticsController && typeof window.AnalyticsController.cleanup === 'function') {
+    if (
+      previousView === 'analytics' &&
+      window.AnalyticsController &&
+      typeof window.AnalyticsController.cleanup === 'function'
+    ) {
       window.AnalyticsController.cleanup();
     }
-    if (previousView === 'import-export' && window.ImportsController && typeof window.ImportsController.cleanup === 'function') {
+    if (
+      previousView === 'import-export' &&
+      window.ImportsController &&
+      typeof window.ImportsController.cleanup === 'function'
+    ) {
       window.ImportsController.cleanup();
     }
-    if (previousView === 'explorer' && window.ExplorerController && typeof window.ExplorerController.cleanup === 'function') {
+    if (
+      previousView === 'explorer' &&
+      window.ExplorerController &&
+      typeof window.ExplorerController.cleanup === 'function'
+    ) {
       window.ExplorerController.cleanup();
     }
-    if (previousView === 'history' && window.HistoryController && typeof window.HistoryController.cleanup === 'function') {
+    if (
+      previousView === 'history' &&
+      window.HistoryController &&
+      typeof window.HistoryController.cleanup === 'function'
+    ) {
       window.HistoryController.cleanup();
     }
 
@@ -317,6 +337,11 @@ const App = {
     // Lifecycle: Enter new view animations
     if (window.AnimationManager) {
       window.AnimationManager.enterView(viewName);
+    }
+
+    // 3D Subsystem View Activation
+    if (window.ThreeRuntime && typeof window.ThreeRuntime.transitionToView === 'function') {
+      window.ThreeRuntime.transitionToView(viewName);
     }
 
     // Scroll to top (respecting reduced motion)

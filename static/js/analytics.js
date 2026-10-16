@@ -562,9 +562,7 @@ const AnalyticsController = {
     }
 
     const { textColor, gridColor } = this.getThemeColors();
-    const animConfig = window.ChartsMotion
-      ? window.ChartsMotion.getAnimationConfig('bar')
-      : {};
+    const animConfig = window.ChartsMotion ? window.ChartsMotion.getAnimationConfig('bar') : {};
 
     const topSources = (sources || []).slice(0, 5);
     const labels = topSources.map((s) => s.source.toUpperCase());
@@ -635,9 +633,7 @@ const AnalyticsController = {
     if (wrapperEl) wrapperEl.classList.remove('hidden');
 
     const { textColor, gridColor, tooltipBg, tooltipText } = this.getThemeColors();
-    const animConfig = window.ChartsMotion
-      ? window.ChartsMotion.getAnimationConfig('bar')
-      : {};
+    const animConfig = window.ChartsMotion ? window.ChartsMotion.getAnimationConfig('bar') : {};
     const helper = window.ConfidenceHelper;
     const labels = helper
       ? helper.CONFIDENCE_BUCKET_LABELS

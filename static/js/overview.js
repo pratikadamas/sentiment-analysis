@@ -31,6 +31,12 @@ const OverviewController = {
       this.renderCategoryBreakdown(analytics ? analytics.category_breakdown : []);
       this.renderSourceBreakdown(analytics ? analytics.source_breakdown : []);
       this.renderDistribution(stats);
+
+      // Feed live telemetry to 3D Sentiment Core
+      if (window.ThreeRuntime && typeof window.ThreeRuntime.updateOverviewData === 'function') {
+        window.ThreeRuntime.updateOverviewData(stats, analytics);
+      }
+
       this.setLoading(false);
     } catch (err) {
       console.error('Error loading overview data:', err);

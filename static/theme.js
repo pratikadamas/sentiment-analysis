@@ -20,7 +20,9 @@ function toggleTheme() {
     localStorage.setItem('theme', nextTheme);
     syncThemeToggleIcons(nextTheme === 'dark');
     window.dispatchEvent(
-      new CustomEvent('theme-changed', { detail: { isDark: nextTheme === 'dark', theme: nextTheme } })
+      new CustomEvent('theme-changed', {
+        detail: { isDark: nextTheme === 'dark', theme: nextTheme },
+      })
     );
   };
 
@@ -30,7 +32,11 @@ function toggleTheme() {
     typeof window.AnimationManager.isReducedMotion === 'function' &&
     window.AnimationManager.isReducedMotion();
 
-  if (!isReduced && typeof document !== 'undefined' && typeof document.startViewTransition === 'function') {
+  if (
+    !isReduced &&
+    typeof document !== 'undefined' &&
+    typeof document.startViewTransition === 'function'
+  ) {
     document.startViewTransition(applyTheme);
   } else {
     applyTheme();
