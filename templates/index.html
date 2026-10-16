@@ -21,6 +21,8 @@
   <!-- Static Compiled Tailwind CSS & Custom Stylesheet -->
   <link rel="stylesheet" href="/static/css/tailwind.min.css">
   <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/static/css/motion-tokens.css">
+  <link rel="stylesheet" href="/static/css/skeletons.css">
   <script defer src="/static/theme.js"></script>
 </head>
 <body class="bg-slate-50 dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 min-h-screen flex flex-col lg:flex-row font-sans transition-colors duration-150">
@@ -254,17 +256,17 @@
       </div>
 
       <!-- Top KPI Metric Cards Grid -->
-      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5" data-stagger="50">
         
         <!-- Total Feedback -->
-        <div class="saas-card p-4 space-y-1">
+        <div class="saas-card p-4 space-y-1" data-reveal>
           <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Feedback</div>
           <div id="kpi-total-val" class="overview-kpi-val text-2xl font-bold font-display text-slate-900 dark:text-white">0</div>
           <div class="text-[10px] text-slate-400">Stored in database</div>
         </div>
 
         <!-- Positive -->
-        <div class="saas-card p-4 space-y-1">
+        <div class="saas-card p-4 space-y-1" data-reveal>
           <div class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Positive</div>
           <div class="flex items-baseline space-x-2">
             <span id="kpi-pos-val" class="overview-kpi-val text-2xl font-bold font-display text-slate-900 dark:text-white">0</span>
@@ -274,7 +276,7 @@
         </div>
 
         <!-- Neutral -->
-        <div class="saas-card p-4 space-y-1">
+        <div class="saas-card p-4 space-y-1" data-reveal>
           <div class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Neutral</div>
           <div class="flex items-baseline space-x-2">
             <span id="kpi-neu-val" class="overview-kpi-val text-2xl font-bold font-display text-slate-900 dark:text-white">0</span>
@@ -284,7 +286,7 @@
         </div>
 
         <!-- Negative -->
-        <div class="saas-card p-4 space-y-1">
+        <div class="saas-card p-4 space-y-1" data-reveal>
           <div class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Negative</div>
           <div class="flex items-baseline space-x-2">
             <span id="kpi-neg-val" class="overview-kpi-val text-2xl font-bold font-display text-slate-900 dark:text-white">0</span>
@@ -294,7 +296,7 @@
         </div>
 
         <!-- Average Confidence -->
-        <div class="saas-card p-4 space-y-1 col-span-2 md:col-span-4 lg:col-span-1">
+        <div class="saas-card p-4 space-y-1 col-span-2 md:col-span-4 lg:col-span-1" data-reveal>
           <div class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Avg Confidence</div>
           <div id="kpi-conf-val" class="overview-kpi-val text-2xl font-bold font-display text-slate-900 dark:text-white">0.0%</div>
           <div class="text-[10px] text-slate-400">ONNX calibrated metric</div>
@@ -1225,14 +1227,22 @@
             <!-- Live Status & Progress Card -->
             <div id="import-status-card" class="hidden p-4 rounded-xl saas-card space-y-3 border-indigo-500/30">
               <div class="flex items-center justify-between text-xs">
-                <span id="import-progress-status" class="font-medium text-slate-700 dark:text-slate-300">Processing...</span>
+                <div class="flex items-center space-x-2">
+                  <span id="import-pulse-dot" class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse hidden" aria-hidden="true"></span>
+                  <span id="import-progress-status" class="font-medium text-slate-700 dark:text-slate-300">Processing...</span>
+                </div>
+                <span id="import-progress-pct" class="font-mono text-slate-500 text-[11px] hidden">0%</span>
               </div>
               <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                 <div id="import-progress-bar" class="h-full bg-indigo-600 rounded-full transition-all duration-300" style="width: 0%"></div>
               </div>
 
               <!-- Completion Summary -->
-              <div id="import-result-summary" class="hidden pt-3 border-t border-slate-200 dark:border-slate-800 space-y-3">
+              <div id="import-result-summary" class="hidden pt-3 border-t border-slate-200 dark:border-slate-800 space-y-3" role="status" aria-live="polite">
+                <div class="flex items-center space-x-2 pb-1">
+                  <span id="import-success-icon" class="text-base" aria-hidden="true">🎉</span>
+                  <span id="import-summary-heading" class="text-xs font-semibold text-slate-800 dark:text-slate-200">Batch Ingestion Results</span>
+                </div>
                 <div class="grid grid-cols-3 gap-2 text-center text-xs">
                   <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-900">
                     <span class="text-[10px] text-slate-400 block">Total</span>
@@ -1487,6 +1497,15 @@
   <script type="module" src="/static/js/lib/bulk.js"></script>
   <script type="module" src="/static/js/lib/confidence.js"></script>
   <script type="module" src="/static/js/lib/pwa-helpers.js"></script>
+  <script type="module" src="/static/js/lib/motion/vendor-loader.js"></script>
+  <script type="module" src="/static/js/lib/motion/presets.js"></script>
+  <script type="module" src="/static/js/lib/motion/animation.js"></script>
+  <script type="module" src="/static/js/lib/motion/reveal.js"></script>
+  <script type="module" src="/static/js/lib/motion/transitions.js"></script>
+  <script type="module" src="/static/js/lib/motion/counters.js"></script>
+  <script type="module" src="/static/js/lib/motion/skeletons.js"></script>
+  <script type="module" src="/static/js/lib/motion/charts-motion.js"></script>
+  <script type="module" src="/static/js/lib/motion/micro.js"></script>
   <script type="module" src="/static/js/explain.js"></script>
   <script src="/static/js/api.js"></script>
   <script src="/static/js/overview.js"></script>

@@ -610,7 +610,7 @@ export const ExplainabilityController = {
         role="button"
         aria-label="${escapedWord}: ${deltaStr} influence (${directionLabel})"
         title="${escapedWord}: ${deltaStr} (${directionLabel})"
-        class="inline-block px-1.5 py-0.5 my-0.5 rounded transition-transform cursor-pointer hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${colorClasses}"
+        class="explain-token inline-block px-1.5 py-0.5 my-0.5 rounded transition-transform cursor-pointer hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${colorClasses}"
       >${escapedWord}</span>`;
 
       cursor = item.end;
@@ -622,6 +622,24 @@ export const ExplainabilityController = {
     }
 
     container.innerHTML = html;
+
+    // Phase 4: Sequential token influence bars / badges animation with bounded stagger
+    const isReduced = window.AnimationManager && window.AnimationManager.isReducedMotion();
+    if (!isReduced) {
+      const badges = container.querySelectorAll('.explain-token');
+      if (badges.length > 0) {
+        badges.forEach((b, i) => {
+          b.style.opacity = '0';
+          b.style.transform = 'scale(0.95) translateY(2px)';
+          const delay = Math.min(i * 35, 450);
+          setTimeout(() => {
+            b.style.transition = 'opacity 180ms ease-out, transform 180ms cubic-bezier(0.2, 0.8, 0.4, 1)';
+            b.style.opacity = '1';
+            b.style.transform = 'none';
+          }, delay);
+        });
+      }
+    }
   },
 
   /**
@@ -666,6 +684,10 @@ export const ExplainabilityController = {
         dirEl.textContent = 'Neutral / minimal impact (<1%)';
         dirEl.className =
           'font-medium text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600';
+      }
+
+      if (window.MicroInteractions && typeof window.MicroInteractions.badgePop === 'function') {
+        window.MicroInteractions.badgePop(dirEl);
       }
     }
   },

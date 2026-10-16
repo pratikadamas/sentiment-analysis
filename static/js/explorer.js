@@ -9,10 +9,35 @@ const ExplorerController = {
   pageSize: 15,
   searchDebounceTimer: null,
   activeRecordDetail: null,
+  _hasLoadedOnce: false,
+  _activeFlipTween: null,
+  _activeStaggerTween: null,
 
   init() {
     this.bindEvents();
     this.loadData();
+  },
+
+  cleanup() {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
+    if (this._activeFlipTween) {
+      try {
+        if (typeof this._activeFlipTween.kill === 'function') this._activeFlipTween.kill();
+      } catch {}
+      this._activeFlipTween = null;
+    }
+    if (this._activeStaggerTween) {
+      try {
+        if (typeof this._activeStaggerTween.kill === 'function') this._activeStaggerTween.kill();
+      } catch {}
+      this._activeStaggerTween = null;
+    }
+    if (window.AnimationManager) {
+      window.AnimationManager.killViewAnimations('explorer');
+    }
   },
 
   bindEvents() {
@@ -192,6 +217,20 @@ const ExplorerController = {
     const nextBtn = document.getElementById('explorer-next-btn');
     const emptyState = document.getElementById('explorer-empty-state');
 
+    // Rapid filtering safety: kill in-flight tweens before starting a new render
+    if (this._activeFlipTween) {
+      try {
+        if (typeof this._activeFlipTween.kill === 'function') this._activeFlipTween.kill();
+      } catch {}
+      this._activeFlipTween = null;
+    }
+    if (this._activeStaggerTween) {
+      try {
+        if (typeof this._activeStaggerTween.kill === 'function') this._activeStaggerTween.kill();
+      } catch {}
+      this._activeStaggerTween = null;
+    }
+
     const search = document.getElementById('explorer-search-input')?.value.trim() || undefined;
     const sentiment = document.getElementById('explorer-filter-sentiment')?.value || undefined;
     const category = document.getElementById('explorer-filter-category')?.value || undefined;
@@ -199,8 +238,20 @@ const ExplorerController = {
     const sortVal = document.getElementById('explorer-sort-select')?.value || 'created_at-desc';
     const [sort_by, sort_order] = sortVal.split('-');
 
-    // Render skeleton placeholders while fetching data
-    this.renderSkeletons();
+    // Render skeleton placeholders only on initial load
+    if (!this._hasLoadedOnce) {
+      this.renderSkeletons();
+    }
+
+    // Capture layout state before fetching & updating DOM if already rendered
+    let flipState = null;
+    const isReduced = window.AnimationManager && window.AnimationManager.isReducedMotion();
+    if (this._hasLoadedOnce && !isReduced && window.AnimationManager) {
+      const existingRows = document.querySelectorAll('.explorer-row, .explorer-card');
+      if (existingRows.length > 0) {
+        flipState = await window.AnimationManager.recordFlipState(existingRows);
+      }
+    }
 
     try {
       const response = await window.api.listFeedback({
@@ -223,6 +274,7 @@ const ExplorerController = {
         if (paginationInfo) paginationInfo.textContent = 'Showing 0 results';
         if (prevBtn) prevBtn.disabled = true;
         if (nextBtn) nextBtn.disabled = true;
+        this._hasLoadedOnce = true;
         return;
       }
 
@@ -264,6 +316,46 @@ const ExplorerController = {
       if (mobileContainer) {
         mobileContainer.innerHTML = items.map((item) => this.renderMobileCard(item)).join('');
       }
+
+      // Apply Flip layout animation or initial row stagger
+      if (flipState && !isReduced && window.AnimationManager) {
+        this._activeFlipTween = await window.AnimationManager.playFlip(
+          flipState,
+          {
+            duration: 0.3,
+            ease: 'power2.out',
+            stagger: 0.02,
+            targets: '.explorer-row, .explorer-card',
+            onComplete: () => {
+              this._activeFlipTween = null;
+            },
+          },
+          'explorer'
+        );
+      } else if (!isReduced) {
+        // Explorer Row Stagger (Section 9) with bounded stagger
+        const rows = Array.from(document.querySelectorAll('.explorer-row, .explorer-card'));
+        const gsap = window.AnimationManager ? await window.AnimationManager.ensureGSAP() : null;
+        if (gsap && rows.length > 0) {
+          const visibleRows = rows.slice(0, 15);
+          this._activeStaggerTween = gsap.fromTo(
+            visibleRows,
+            { opacity: 0, y: 8 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.25,
+              stagger: 0.03,
+              ease: 'power2.out',
+              onComplete: () => {
+                this._activeStaggerTween = null;
+              },
+            }
+          );
+        }
+      }
+
+      this._hasLoadedOnce = true;
     } catch (err) {
       console.error('Failed to load feedback records:', err);
       if (tableBody) tableBody.innerHTML = '';
@@ -367,10 +459,20 @@ const ExplorerController = {
 
   closeDetailModal() {
     const modal = document.getElementById('feedback-detail-modal');
-    if (modal) modal.classList.add('hidden');
-    if (this.detailModalTrap) {
-      this.detailModalTrap.deactivate();
-      this.detailModalTrap = null;
+    if (!modal) return;
+    const dialog = modal.querySelector('[role="document"], .saas-card');
+    const onDone = () => {
+      modal.classList.add('hidden');
+      if (this.detailModalTrap) {
+        this.detailModalTrap.deactivate();
+        this.detailModalTrap = null;
+      }
+    };
+
+    if (window.MicroInteractions && typeof window.MicroInteractions.modalExit === 'function') {
+      window.MicroInteractions.modalExit(modal, dialog, onDone);
+    } else {
+      onDone();
     }
   },
 
@@ -418,16 +520,17 @@ const ExplorerController = {
 
       if (deleteBtn) {
         deleteBtn.onclick = () => {
-          modal.classList.add('hidden');
-          if (this.detailModalTrap) {
-            this.detailModalTrap.deactivate();
-            this.detailModalTrap = null;
-          }
+          this.closeDetailModal();
           this.confirmDelete(data.id, triggeringElement);
         };
       }
 
-      modal.classList.remove('hidden');
+      const dialog = modal.querySelector('[role="document"], .saas-card');
+      if (window.MicroInteractions && typeof window.MicroInteractions.modalEnter === 'function') {
+        window.MicroInteractions.modalEnter(modal, dialog);
+      } else {
+        modal.classList.remove('hidden');
+      }
 
       if (this.detailModalTrap) {
         this.detailModalTrap.deactivate();

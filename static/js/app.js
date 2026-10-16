@@ -57,17 +57,26 @@ window.showToast = function (message, type = 'info') {
     <button aria-label="Dismiss notification" class="opacity-60 hover:opacity-100 ml-2 text-base font-bold p-1 rounded focus:outline-none focus:ring-1 focus:ring-white">&times;</button>
   `;
 
-  toast.querySelector('button').addEventListener('click', () => {
-    toast.remove();
-  });
-
   container.appendChild(toast);
 
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(10px)';
-    setTimeout(() => toast.remove(), 300);
-  }, 4000);
+  if (window.MicroInteractions && typeof window.MicroInteractions.animateToast === 'function') {
+    window.MicroInteractions.animateToast(toast);
+  }
+
+  const dismissToast = () => {
+    if (window.MicroInteractions && typeof window.MicroInteractions.dismissToast === 'function') {
+      window.MicroInteractions.dismissToast(toast);
+    } else {
+      toast.remove();
+    }
+  };
+
+  const timer = setTimeout(dismissToast, 4000);
+
+  toast.querySelector('button').addEventListener('click', () => {
+    clearTimeout(timer);
+    dismissToast();
+  });
 };
 
 // Global Utility: Confirmation Modal with Accessible Focus Trap
@@ -91,17 +100,30 @@ window.showConfirm = function (
   if (titleEl) titleEl.textContent = title;
   if (msgEl) msgEl.textContent = message;
 
-  modal.classList.remove('hidden');
+  const dialog = modal.querySelector('[role="document"], .saas-card');
+  if (window.MicroInteractions && typeof window.MicroInteractions.modalEnter === 'function') {
+    window.MicroInteractions.modalEnter(modal, dialog);
+  } else {
+    modal.classList.remove('hidden');
+  }
 
   let trap = null;
   const cleanup = () => {
-    modal.classList.add('hidden');
-    confirmBtn.onclick = null;
-    cancelBtn.onclick = null;
-    modal.onclick = null;
-    if (trap) {
-      trap.deactivate();
-      trap = null;
+    const onDone = () => {
+      modal.classList.add('hidden');
+      confirmBtn.onclick = null;
+      cancelBtn.onclick = null;
+      modal.onclick = null;
+      if (trap) {
+        trap.deactivate();
+        trap = null;
+      }
+    };
+
+    if (window.MicroInteractions && typeof window.MicroInteractions.modalExit === 'function') {
+      window.MicroInteractions.modalExit(modal, dialog, onDone);
+    } else {
+      onDone();
     }
   };
 
@@ -133,6 +155,11 @@ const App = {
   views: ['overview', 'analyze', 'explorer', 'analytics', 'import-export', 'history'],
 
   async init() {
+    // Initialize micro-interactions delegator
+    if (window.MicroInteractions && typeof window.MicroInteractions.init === 'function') {
+      window.MicroInteractions.init();
+    }
+
     this.bindNavigation();
     this.initOfflineDetection();
     this.initServiceWorker();
@@ -191,55 +218,92 @@ const App = {
     }
   },
 
-  switchView(viewName, updateHash = true) {
+  async switchView(viewName, updateHash = true) {
     if (!this.views.includes(viewName)) return;
+    const previousView = this.currentView;
     this.currentView = viewName;
 
     if (updateHash) {
       window.location.hash = `#${viewName}`;
     }
 
-    // Toggle view containers
-    this.views.forEach((v) => {
-      const container = document.getElementById(`view-${v}`);
-      if (container) {
-        if (v === viewName) {
-          container.classList.remove('hidden');
-        } else {
-          container.classList.add('hidden');
+    // Lifecycle: Exit previous view animations and cleanup
+    if (window.AnimationManager) {
+      window.AnimationManager.exitView(previousView);
+    }
+    if (previousView === 'analytics' && window.AnalyticsController && typeof window.AnalyticsController.cleanup === 'function') {
+      window.AnalyticsController.cleanup();
+    }
+    if (previousView === 'import-export' && window.ImportsController && typeof window.ImportsController.cleanup === 'function') {
+      window.ImportsController.cleanup();
+    }
+    if (previousView === 'explorer' && window.ExplorerController && typeof window.ExplorerController.cleanup === 'function') {
+      window.ExplorerController.cleanup();
+    }
+    if (previousView === 'history' && window.HistoryController && typeof window.HistoryController.cleanup === 'function') {
+      window.HistoryController.cleanup();
+    }
+
+    const fromEl = document.getElementById(`view-${previousView}`);
+    const toEl = document.getElementById(`view-${viewName}`);
+
+    // Synchronous DOM swap contract
+    const swap = () => {
+      // Toggle view containers
+      this.views.forEach((v) => {
+        const container = document.getElementById(`view-${v}`);
+        if (container) {
+          if (v === viewName) {
+            container.classList.remove('hidden');
+          } else {
+            container.classList.add('hidden');
+          }
         }
-      }
-    });
+      });
 
-    // Update active state in navbars
-    document.querySelectorAll('.nav-link').forEach((link) => {
-      const target = link.getAttribute('data-view');
-      const isSelected = target === viewName;
+      // Update active state in navbars
+      document.querySelectorAll('.nav-link').forEach((link) => {
+        const target = link.getAttribute('data-view');
+        const isSelected = target === viewName;
 
-      if (isSelected) {
-        link.setAttribute('aria-current', 'page');
-        link.classList.add(
-          'bg-indigo-50',
-          'text-indigo-600',
-          'dark:bg-indigo-500/10',
-          'dark:text-indigo-400',
-          'font-semibold'
-        );
-        link.classList.remove('text-slate-600', 'dark:text-slate-400');
-      } else {
-        link.removeAttribute('aria-current');
-        link.classList.remove(
-          'bg-indigo-50',
-          'text-indigo-600',
-          'dark:bg-indigo-500/10',
-          'dark:text-indigo-400',
-          'font-semibold'
-        );
-        link.classList.add('text-slate-600', 'dark:text-slate-400');
-      }
-    });
+        if (isSelected) {
+          link.setAttribute('aria-current', 'page');
+          link.classList.add(
+            'bg-indigo-50',
+            'text-indigo-600',
+            'dark:bg-indigo-500/10',
+            'dark:text-indigo-400',
+            'font-semibold'
+          );
+          link.classList.remove('text-slate-600', 'dark:text-slate-400');
+        } else {
+          link.removeAttribute('aria-current');
+          link.classList.remove(
+            'bg-indigo-50',
+            'text-indigo-600',
+            'dark:bg-indigo-500/10',
+            'dark:text-indigo-400',
+            'font-semibold'
+          );
+          link.classList.add('text-slate-600', 'dark:text-slate-400');
+        }
+      });
+    };
 
-    // Trigger subcontroller refreshes
+    // Orchestrate visual view transition with fallback
+    if (window.ViewTransitions && previousView !== viewName && fromEl && toEl) {
+      await window.ViewTransitions.transition({
+        fromView: previousView,
+        toView: viewName,
+        fromEl,
+        toEl,
+        swap,
+      });
+    } else {
+      swap();
+    }
+
+    // Trigger subcontroller refreshes exactly once
     if (viewName === 'overview' && window.OverviewController) {
       window.OverviewController.refresh();
     } else if (viewName === 'explorer' && window.ExplorerController) {
@@ -250,7 +314,14 @@ const App = {
       window.HistoryController.loadHistory();
     }
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Lifecycle: Enter new view animations
+    if (window.AnimationManager) {
+      window.AnimationManager.enterView(viewName);
+    }
+
+    // Scroll to top (respecting reduced motion)
+    const isReduced = window.AnimationManager && window.AnimationManager.isReducedMotion();
+    window.scrollTo({ top: 0, behavior: isReduced ? 'auto' : 'smooth' });
   },
 
   openMobileDrawer() {

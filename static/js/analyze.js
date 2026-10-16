@@ -303,6 +303,9 @@ const AnalyzeController = {
     if (submitBtn) submitBtn.disabled = true;
     if (btnSpinner) btnSpinner.classList.remove('hidden');
     if (btnText) btnText.textContent = shouldSave ? 'Analyzing & Saving...' : 'Analyzing...';
+    if (window.AnimationManager && !window.AnimationManager.isReducedMotion()) {
+      window.AnimationManager.play('press', submitBtn, { duration: 0.15 }, 'analyze');
+    }
 
     const skeleton = document.getElementById('analyze-skeleton');
     const emptyState = document.getElementById('analyze-empty-state');
@@ -375,6 +378,19 @@ const AnalyzeController = {
       if (submitBtn) submitBtn.disabled = false;
       if (btnSpinner) btnSpinner.classList.add('hidden');
       if (btnText) btnText.textContent = 'Analyze Sentiment';
+      if (window.AnimationManager) {
+        if (window.AnimationManager.isReducedMotion()) {
+          submitBtn.style.transform = '';
+          submitBtn.style.opacity = '';
+        } else {
+          window.AnimationManager.play(
+            'fadeIn',
+            submitBtn,
+            { to: { scale: 1, opacity: 1, duration: 0.15 } },
+            'analyze'
+          );
+        }
+      }
     }
   },
 
@@ -449,6 +465,11 @@ const AnalyzeController = {
     if (skeleton) skeleton.classList.add('hidden');
     if (emptyState) emptyState.classList.add('hidden');
     if (activeResults) activeResults.classList.remove('hidden');
+
+    const isReduced = window.AnimationManager && window.AnimationManager.isReducedMotion();
+    if (!isReduced && window.AnimationManager && sentimentHero) {
+      window.AnimationManager.play('resultCardEnter', sentimentHero, {}, 'analyze');
+    }
 
     if (latencyEl) {
       latencyEl.textContent = data.isRehydrated
@@ -570,11 +591,24 @@ const AnalyzeController = {
     if (pctNeu) pctNeu.textContent = `${pNeu}%`;
     if (pctNeg) pctNeg.textContent = `${pNeg}%`;
 
-    setTimeout(() => {
+    if (isReduced) {
       if (barPos) barPos.style.width = `${pPos}%`;
       if (barNeu) barNeu.style.width = `${pNeu}%`;
       if (barNeg) barNeg.style.width = `${pNeg}%`;
-    }, 50);
+    } else {
+      if (barPos) {
+        barPos.style.transition = 'width 400ms cubic-bezier(0.2, 0.8, 0.4, 1)';
+        barPos.style.width = `${pPos}%`;
+      }
+      if (barNeu) {
+        barNeu.style.transition = 'width 400ms cubic-bezier(0.2, 0.8, 0.4, 1)';
+        barNeu.style.width = `${pNeu}%`;
+      }
+      if (barNeg) {
+        barNeg.style.transition = 'width 400ms cubic-bezier(0.2, 0.8, 0.4, 1)';
+        barNeg.style.width = `${pNeg}%`;
+      }
+    }
 
     if (rawJsonEl) {
       rawJsonEl.textContent = JSON.stringify(data, null, 2);

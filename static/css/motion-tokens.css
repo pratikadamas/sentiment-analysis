@@ -1,0 +1,171 @@
+/**
+ * Sentiment Pulse - Motion Tokens & Core Keyframes (motion-tokens.css)
+ * Centralized motion tokens, easing functions, keyframes, and reduced-motion rules.
+ */
+
+:root {
+  /* Motion Duration Tokens */
+  --motion-fast: 150ms;
+  --motion-base: 250ms;
+  --motion-slow: 400ms;
+  --motion-view: 350ms;
+
+  /* Standard Motion Easings */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* ==============================================================================
+   Keyframes (Foundation for Future Motion Phases)
+   ============================================================================== */
+
+/* Shimmer Keyframe */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Soft Pulse Keyframe */
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+}
+
+/* Float Keyframe */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Gradient Pan Keyframe */
+@keyframes gradient-pan {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Gauge Fill Keyframe */
+@keyframes gauge-fill {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: var(--gauge-target-offset, 0);
+  }
+}
+
+/* ==============================================================================
+   Declarative Reveal Engine Elements
+   ============================================================================== */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity var(--motion-slow) var(--ease-out-expo),
+              transform var(--motion-slow) var(--ease-out-expo);
+  will-change: opacity, transform;
+}
+
+[data-reveal="left"] {
+  transform: translateX(-16px);
+}
+
+[data-reveal="right"] {
+  transform: translateX(16px);
+}
+
+[data-reveal="fade"] {
+  transform: none;
+}
+
+[data-reveal].is-revealed {
+  opacity: 1;
+  transform: translate(0, 0);
+  will-change: auto;
+}
+
+/* ==============================================================================
+   Native View Transitions (Subtle Fade + Movement)
+   ============================================================================== */
+@keyframes view-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes view-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+::view-transition-old(root) {
+  animation: var(--motion-fast) var(--ease-out-expo) both view-fade-out;
+}
+
+::view-transition-new(root) {
+  animation: var(--motion-view) var(--ease-out-expo) both view-fade-in;
+}
+
+/* ==============================================================================
+   Global Accessible Reduced Motion Mode
+   ============================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0.01ms;
+    --motion-base: 0.01ms;
+    --motion-slow: 0.01ms;
+    --motion-view: 0.01ms;
+  }
+
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+
+  .motion-animate,
+  [data-motion] {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

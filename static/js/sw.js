@@ -10,7 +10,7 @@
  * - Versioned cache cleanup during activation
  */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `sentiment-pulse-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
@@ -18,6 +18,8 @@ const SHELL_ASSETS = [
   '/static/manifest.webmanifest',
   '/static/css/tailwind.min.css',
   '/static/css/app.css',
+  '/static/css/motion-tokens.css',
+  '/static/css/skeletons.css',
   '/static/theme.js',
   '/static/icons/icon-192x192.png',
   '/static/icons/icon-512x512.png',
@@ -40,6 +42,23 @@ const SHELL_ASSETS = [
   '/static/js/lib/bulk.js',
   '/static/js/lib/confidence.js',
   '/static/js/lib/pwa-helpers.js',
+  '/static/js/lib/motion/animation.js',
+  '/static/js/lib/motion/vendor-loader.js',
+  '/static/js/lib/motion/presets.js',
+  '/static/js/lib/motion/reveal.js',
+  '/static/js/lib/motion/transitions.js',
+  '/static/js/lib/motion/counters.js',
+  '/static/js/lib/motion/skeletons.js',
+  '/static/js/lib/motion/charts-motion.js',
+  '/static/js/lib/motion/micro.js',
+  '/static/js/lib/vendor/vendor.manifest.json',
+  '/static/js/lib/vendor/gsap.min.js',
+  '/static/js/lib/vendor/ScrollTrigger.min.js',
+  '/static/js/lib/vendor/Flip.min.js',
+  '/static/js/lib/vendor/countup.min.js',
+  '/static/js/lib/vendor/split-type.min.js',
+  '/static/js/lib/vendor/confetti.min.js',
+  '/static/js/lib/vendor/chart.min.js',
 ];
 
 const API_PREFIXES = ['/predict', '/feedback', '/api', '/health', '/docs', '/openapi.json'];

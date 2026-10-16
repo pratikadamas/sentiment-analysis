@@ -8,11 +8,15 @@
     "lint": "eslint static/ tests/frontend/",
     "lint:fix": "eslint static/ tests/frontend/ --fix",
     "format": "prettier --write \"static/**/*.js\" \"tests/frontend/**/*.js\"",
-    "format:check": "prettier --check \"static/**/*.js\" \"tests/frontend/**/*.js\""
+    "format:check": "prettier --check \"static/**/*.js\" \"tests/frontend/**/*.js\"",
+    "build:css": "tailwindcss -i ./static/css/tailwind-input.css -o ./static/css/tailwind.min.css --minify",
+    "watch:css": "tailwindcss -i ./static/css/tailwind-input.css -o ./static/css/tailwind.min.css --watch",
+    "audit:vendor": "node scripts/audit-vendor.js"
   },
   "devDependencies": {
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
-    "prettier": "^3.9.10"
+    "prettier": "^3.9.10",
+    "tailwindcss": "^3.4.19"
   }
 }

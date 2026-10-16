@@ -5,12 +5,12 @@
  */
 
 export const SHELL_CACHE_PREFIX = 'sentiment-pulse-shell-';
-export const DEFAULT_SHELL_VERSION = 'v2';
+export const DEFAULT_SHELL_VERSION = 'v3';
 
 /**
  * Generate versioned cache name.
  * @param {string} [version=DEFAULT_SHELL_VERSION]
- * @returns {string} e.g. "sentiment-pulse-shell-v2"
+ * @returns {string} e.g. "sentiment-pulse-shell-v3"
  */
 export function getCacheName(version = DEFAULT_SHELL_VERSION) {
   const v = version ? String(version).trim() : DEFAULT_SHELL_VERSION;
@@ -22,6 +22,8 @@ export const SHELL_ASSETS = [
   '/static/manifest.webmanifest',
   '/static/css/tailwind.min.css',
   '/static/css/app.css',
+  '/static/css/motion-tokens.css',
+  '/static/css/skeletons.css',
   '/static/theme.js',
   '/static/icons/icon-192x192.png',
   '/static/icons/icon-512x512.png',
@@ -44,6 +46,23 @@ export const SHELL_ASSETS = [
   '/static/js/lib/bulk.js',
   '/static/js/lib/confidence.js',
   '/static/js/lib/pwa-helpers.js',
+  '/static/js/lib/motion/animation.js',
+  '/static/js/lib/motion/vendor-loader.js',
+  '/static/js/lib/motion/presets.js',
+  '/static/js/lib/motion/reveal.js',
+  '/static/js/lib/motion/transitions.js',
+  '/static/js/lib/motion/counters.js',
+  '/static/js/lib/motion/skeletons.js',
+  '/static/js/lib/motion/charts-motion.js',
+  '/static/js/lib/motion/micro.js',
+  '/static/js/lib/vendor/vendor.manifest.json',
+  '/static/js/lib/vendor/gsap.min.js',
+  '/static/js/lib/vendor/ScrollTrigger.min.js',
+  '/static/js/lib/vendor/Flip.min.js',
+  '/static/js/lib/vendor/countup.min.js',
+  '/static/js/lib/vendor/split-type.min.js',
+  '/static/js/lib/vendor/confetti.min.js',
+  '/static/js/lib/vendor/chart.min.js',
 ];
 
 const API_PATH_PREFIXES = ['/predict', '/feedback', '/api', '/health', '/docs', '/openapi.json'];

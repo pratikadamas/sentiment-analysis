@@ -10,17 +10,31 @@ function toggleTheme() {
   const isDark = htmlEl.classList.contains('dark');
   const nextTheme = isDark ? 'light' : 'dark';
 
-  if (nextTheme === 'dark') {
-    htmlEl.classList.add('dark');
-  } else {
-    htmlEl.classList.remove('dark');
-  }
+  const applyTheme = () => {
+    if (nextTheme === 'dark') {
+      htmlEl.classList.add('dark');
+    } else {
+      htmlEl.classList.remove('dark');
+    }
 
-  localStorage.setItem('theme', nextTheme);
-  syncThemeToggleIcons(nextTheme === 'dark');
-  window.dispatchEvent(
-    new CustomEvent('theme-changed', { detail: { isDark: nextTheme === 'dark', theme: nextTheme } })
-  );
+    localStorage.setItem('theme', nextTheme);
+    syncThemeToggleIcons(nextTheme === 'dark');
+    window.dispatchEvent(
+      new CustomEvent('theme-changed', { detail: { isDark: nextTheme === 'dark', theme: nextTheme } })
+    );
+  };
+
+  const isReduced =
+    typeof window !== 'undefined' &&
+    window.AnimationManager &&
+    typeof window.AnimationManager.isReducedMotion === 'function' &&
+    window.AnimationManager.isReducedMotion();
+
+  if (!isReduced && typeof document !== 'undefined' && typeof document.startViewTransition === 'function') {
+    document.startViewTransition(applyTheme);
+  } else {
+    applyTheme();
+  }
 }
 
 // Synchronize any theme toggle buttons on the page with current theme state

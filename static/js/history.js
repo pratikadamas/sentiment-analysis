@@ -6,12 +6,37 @@
 
 const HistoryController = {
   initialized: false,
+  _activeFlipTween: null,
+  _activeStaggerTween: null,
+  _debounceTimer: null,
 
   async init() {
     if (this.initialized) return;
     this.initialized = true;
     this.bindEvents();
     await this.loadHistory();
+  },
+
+  cleanup() {
+    if (this._debounceTimer) {
+      clearTimeout(this._debounceTimer);
+      this._debounceTimer = null;
+    }
+    if (this._activeFlipTween) {
+      try {
+        if (typeof this._activeFlipTween.kill === 'function') this._activeFlipTween.kill();
+      } catch {}
+      this._activeFlipTween = null;
+    }
+    if (this._activeStaggerTween) {
+      try {
+        if (typeof this._activeStaggerTween.kill === 'function') this._activeStaggerTween.kill();
+      } catch {}
+      this._activeStaggerTween = null;
+    }
+    if (window.AnimationManager) {
+      window.AnimationManager.killViewAnimations('history');
+    }
   },
 
   bindEvents() {
@@ -25,10 +50,9 @@ const HistoryController = {
 
     // Debounced search input
     if (searchInput) {
-      let debounceTimer = null;
       searchInput.addEventListener('input', () => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
+        clearTimeout(this._debounceTimer);
+        this._debounceTimer = setTimeout(() => {
           this.loadHistory();
         }, 250);
       });
@@ -114,7 +138,7 @@ const HistoryController = {
     });
   },
 
-  async loadHistory() {
+  async loadHistory(options = {}) {
     if (!window.historyStore) return;
 
     const tableBody = document.getElementById('history-table-body');
@@ -123,10 +147,34 @@ const HistoryController = {
     const emptyState = document.getElementById('history-empty-state');
     const clearBtn = document.getElementById('history-clear-btn');
 
+    // Cancel in-flight animations before starting a new render
+    if (this._activeFlipTween) {
+      try {
+        if (typeof this._activeFlipTween.kill === 'function') this._activeFlipTween.kill();
+      } catch {}
+      this._activeFlipTween = null;
+    }
+    if (this._activeStaggerTween) {
+      try {
+        if (typeof this._activeStaggerTween.kill === 'function') this._activeStaggerTween.kill();
+      } catch {}
+      this._activeStaggerTween = null;
+    }
+
     const search = document.getElementById('history-search-input')?.value.trim() || '';
     const sentiment = document.getElementById('history-filter-sentiment')?.value || 'all';
     const sortVal = document.getElementById('history-sort-select')?.value || 'date-desc';
     const [sortBy, sortOrder] = sortVal.split('-');
+
+    // Capture layout state before fetching & updating DOM (especially on deletion)
+    const isReduced = window.AnimationManager && window.AnimationManager.isReducedMotion();
+    let flipState = null;
+    if (!isReduced && window.AnimationManager && options.isDeletion) {
+      const existingRows = document.querySelectorAll('.history-row, .history-card');
+      if (existingRows.length > 0) {
+        flipState = await window.AnimationManager.recordFlipState(existingRows);
+      }
+    }
 
     try {
       const totalCount = await window.historyStore.count();
@@ -174,6 +222,44 @@ const HistoryController = {
 
       if (mobileContainer) {
         mobileContainer.innerHTML = items.map((item) => this.renderMobileCard(item)).join('');
+      }
+
+      // Animate with Flip on deletion or stagger on initial appearance
+      if (flipState && !isReduced && window.AnimationManager) {
+        this._activeFlipTween = await window.AnimationManager.playFlip(
+          flipState,
+          {
+            duration: 0.28,
+            ease: 'power2.out',
+            stagger: 0.02,
+            targets: '.history-row, .history-card',
+            onComplete: () => {
+              this._activeFlipTween = null;
+            },
+          },
+          'history'
+        );
+      } else if (!isReduced) {
+        // Restrained staggered entrance for history entries
+        const rows = Array.from(document.querySelectorAll('.history-row, .history-card'));
+        const gsap = window.AnimationManager ? await window.AnimationManager.ensureGSAP() : null;
+        if (gsap && rows.length > 0) {
+          const visibleRows = rows.slice(0, 15);
+          this._activeStaggerTween = gsap.fromTo(
+            visibleRows,
+            { opacity: 0, y: 8 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.25,
+              stagger: 0.03,
+              ease: 'power2.out',
+              onComplete: () => {
+                this._activeStaggerTween = null;
+              },
+            }
+          );
+        }
       }
     } catch (err) {
       console.error('Error loading history:', err);
@@ -324,7 +410,7 @@ const HistoryController = {
         try {
           await window.historyStore.deleteEntry(id);
           window.showToast('History entry removed.', 'info');
-          await this.loadHistory();
+          await this.loadHistory({ isDeletion: true });
         } catch (err) {
           window.showToast(err.message || 'Failed to delete history record.', 'error');
         }

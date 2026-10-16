@@ -15,6 +15,10 @@ const OverviewController = {
     const container = document.getElementById('view-overview');
     if (!container) return;
 
+    if (window.AnimationManager) {
+      window.AnimationManager.killViewAnimations('overview');
+    }
+
     try {
       this.setLoading(true);
       const [stats, analytics] = await Promise.all([
@@ -40,25 +44,32 @@ const OverviewController = {
     kpiElements.forEach((el) => {
       if (isLoading) {
         el.classList.add('skeleton', 'text-transparent', 'rounded-md');
+        el.setAttribute('aria-busy', 'true');
       } else {
         el.classList.remove('skeleton', 'text-transparent', 'rounded-md');
+        el.setAttribute('aria-busy', 'false');
       }
     });
 
     const listContainer = document.getElementById('overview-negatives-list');
-    if (listContainer && isLoading) {
-      listContainer.innerHTML = `
-        <div class="space-y-3 py-2" aria-busy="true" aria-label="Loading negative feedback alerts">
-          <div class="p-3 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
-            <div class="h-3.5 w-3/4 rounded skeleton"></div>
-            <div class="h-2.5 w-1/3 rounded skeleton"></div>
+    if (listContainer) {
+      if (isLoading) {
+        listContainer.setAttribute('aria-busy', 'true');
+        listContainer.innerHTML = `
+          <div class="space-y-3 py-2" aria-busy="true" aria-label="Loading negative feedback alerts">
+            <div class="p-3 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
+              <div class="h-3.5 w-3/4 rounded skeleton"></div>
+              <div class="h-2.5 w-1/3 rounded skeleton"></div>
+            </div>
+            <div class="p-3 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
+              <div class="h-3.5 w-2/3 rounded skeleton"></div>
+              <div class="h-2.5 w-1/4 rounded skeleton"></div>
+            </div>
           </div>
-          <div class="p-3 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
-            <div class="h-3.5 w-2/3 rounded skeleton"></div>
-            <div class="h-2.5 w-1/4 rounded skeleton"></div>
-          </div>
-        </div>
-      `;
+        `;
+      } else {
+        listContainer.setAttribute('aria-busy', 'false');
+      }
     }
   },
 
@@ -72,21 +83,6 @@ const OverviewController = {
     const negPct = stats ? stats.negative_pct : 0;
     const avgConf = stats ? (stats.average_confidence * 100).toFixed(1) : '0.0';
 
-    // Update DOM values
-    const setElemText = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = val;
-    };
-
-    setElemText('kpi-total-val', total.toLocaleString());
-    setElemText('kpi-pos-val', pos.toLocaleString());
-    setElemText('kpi-pos-pct', `${posPct}%`);
-    setElemText('kpi-neu-val', neu.toLocaleString());
-    setElemText('kpi-neu-pct', `${neuPct}%`);
-    setElemText('kpi-neg-val', neg.toLocaleString());
-    setElemText('kpi-neg-pct', `${negPct}%`);
-    setElemText('kpi-conf-val', `${avgConf}%`);
-
     // Show/hide empty state banner
     const emptyBanner = document.getElementById('overview-empty-state');
     const contentGrid = document.getElementById('overview-content-grid');
@@ -96,6 +92,50 @@ const OverviewController = {
       } else {
         emptyBanner.classList.add('hidden');
       }
+    }
+
+    const setElemText = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+
+    if (total === 0) {
+      setElemText('kpi-total-val', '0');
+      setElemText('kpi-pos-val', '0');
+      setElemText('kpi-pos-pct', '0.0%');
+      setElemText('kpi-neu-val', '0');
+      setElemText('kpi-neu-pct', '0.0%');
+      setElemText('kpi-neg-val', '0');
+      setElemText('kpi-neg-pct', '0.0%');
+      setElemText('kpi-conf-val', '0.0%');
+      return;
+    }
+
+    // Trigger subtle card stagger reveal if available
+    if (window.RevealEngine && typeof window.RevealEngine.revealAll === 'function') {
+      const kpiGrid = document.querySelector('#view-overview [data-stagger]');
+      if (kpiGrid) window.RevealEngine.revealAll(kpiGrid);
+    }
+
+    // Update DOM values via accessible Counters adapter or fallback
+    if (window.Counters) {
+      window.Counters.animate('kpi-total-val', total);
+      window.Counters.animate('kpi-pos-val', pos);
+      window.Counters.animate('kpi-pos-pct', `${posPct}%`);
+      window.Counters.animate('kpi-neu-val', neu);
+      window.Counters.animate('kpi-neu-pct', `${neuPct}%`);
+      window.Counters.animate('kpi-neg-val', neg);
+      window.Counters.animate('kpi-neg-pct', `${negPct}%`);
+      window.Counters.animate('kpi-conf-val', `${avgConf}%`);
+    } else {
+      setElemText('kpi-total-val', total.toLocaleString());
+      setElemText('kpi-pos-val', pos.toLocaleString());
+      setElemText('kpi-pos-pct', `${posPct}%`);
+      setElemText('kpi-neu-val', neu.toLocaleString());
+      setElemText('kpi-neu-pct', `${neuPct}%`);
+      setElemText('kpi-neg-val', neg.toLocaleString());
+      setElemText('kpi-neg-pct', `${negPct}%`);
+      setElemText('kpi-conf-val', `${avgConf}%`);
     }
   },
 
@@ -108,9 +148,27 @@ const OverviewController = {
     const barNeu = document.getElementById('overview-bar-neu');
     const barNeg = document.getElementById('overview-bar-neg');
 
-    if (barPos) barPos.style.width = `${posPct}%`;
-    if (barNeu) barNeu.style.width = `${neuPct}%`;
-    if (barNeg) barNeg.style.width = `${negPct}%`;
+    const isReduced =
+      window.AnimationManager && typeof window.AnimationManager.isReducedMotion === 'function'
+        ? window.AnimationManager.isReducedMotion()
+        : false;
+
+    const bars = [
+      { el: barPos, pct: posPct },
+      { el: barNeu, pct: neuPct },
+      { el: barNeg, pct: negPct },
+    ];
+
+    bars.forEach(({ el, pct }) => {
+      if (!el) return;
+      el.style.width = `${pct}%`;
+      if (!isReduced && pct > 0 && window.AnimationManager) {
+        el.style.transformOrigin = 'left center';
+        window.AnimationManager.play('barGrow', el, { duration: 0.5 }, 'overview');
+      } else {
+        el.style.transform = 'none';
+      }
+    });
   },
 
   renderRecentNegatives(items) {

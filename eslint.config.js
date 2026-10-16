@@ -9,11 +9,12 @@ export default [
       'alembic/**',
       'reports/**',
       'static/manifest.json',
+      'static/js/lib/vendor/**',
       '**/*.py'
     ]
   },
   {
-    files: ['static/**/*.js', 'tests/frontend/**/*.js', 'eslint.config.js'],
+    files: ['static/**/*.js', 'tests/frontend/**/*.js', 'eslint.config.js', 'scripts/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -27,7 +28,16 @@ export default [
         AnalyzeController: 'writable',
         ExplorerController: 'writable',
         AnalyticsController: 'writable',
-        ImportsController: 'writable'
+        ImportsController: 'writable',
+        AnimationManager: 'writable',
+        VendorLoader: 'writable',
+        MotionPresets: 'writable',
+        RevealEngine: 'writable',
+        ViewTransitions: 'writable',
+        Counters: 'writable',
+        Skeletons: 'writable',
+        ChartsMotion: 'writable',
+        MicroInteractions: 'writable'
       }
     },
     rules: {

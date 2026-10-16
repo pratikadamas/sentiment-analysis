@@ -14,6 +14,18 @@ const AnalyticsController = {
   confidenceCache: new Map(),
   _chartLoadingPromise: null,
 
+  cleanup() {
+    if (window.ChartsMotion) {
+      window.ChartsMotion.cleanup('analytics');
+    }
+    Object.values(this.charts).forEach((c) => {
+      if (c && typeof c.destroy === 'function') {
+        c.destroy();
+      }
+    });
+    this.charts = {};
+  },
+
   async ensureChart() {
     if (typeof window !== 'undefined' && window.Chart) {
       return window.Chart;
@@ -24,30 +36,18 @@ const AnalyticsController = {
     }
 
     this._chartLoadingPromise = (async () => {
-      // 1. Try native ES module dynamic import
-      try {
-        const mod = await import('https://cdn.jsdelivr.net/npm/chart.js@4.4.2/auto/+esm');
-        const ChartClass = mod.Chart || mod.default;
-        if (ChartClass) {
-          window.Chart = ChartClass;
-          return window.Chart;
+      if (typeof window !== 'undefined' && window.VendorLoader) {
+        try {
+          const chart = await window.VendorLoader.loadVendor('chart');
+          if (chart) {
+            window.Chart = chart;
+            return chart;
+          }
+        } catch (err) {
+          console.warn('[AnalyticsController] VendorLoader failed to load Chart.js:', err);
         }
-      } catch (esmErr) {
-        console.warn(
-          'Native ESM dynamic import for Chart.js failed, falling back to script loader:',
-          esmErr
-        );
       }
-
-      // 2. Fallback: dynamic script loader
-      return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js';
-        script.async = true;
-        script.onload = () => resolve(window.Chart);
-        script.onerror = (e) => reject(new Error('Failed to load Chart.js: ' + e));
-        document.head.appendChild(script);
-      });
+      return null;
     })();
 
     return this._chartLoadingPromise;
@@ -215,6 +215,8 @@ const AnalyticsController = {
   },
 
   async loadAnalytics() {
+    this.cleanup();
+
     const emptyState = document.getElementById('analytics-empty-state');
     const skeletonView = document.getElementById('analytics-skeleton-view');
     const content = document.getElementById('analytics-content-view');
@@ -222,15 +224,24 @@ const AnalyticsController = {
 
     if (offlineState) offlineState.classList.add('hidden');
     if (emptyState) emptyState.classList.add('hidden');
-    if (content) content.classList.add('hidden');
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      if (skeletonView) skeletonView.classList.add('hidden');
+      if (window.Skeletons) {
+        window.Skeletons.hide(skeletonView, content);
+      } else {
+        if (skeletonView) skeletonView.classList.add('hidden');
+        if (content) content.classList.add('hidden');
+      }
       if (offlineState) offlineState.classList.remove('hidden');
       return;
     }
 
-    if (skeletonView) skeletonView.classList.remove('hidden');
+    if (window.Skeletons) {
+      window.Skeletons.show(skeletonView, content);
+    } else {
+      if (skeletonView) skeletonView.classList.remove('hidden');
+      if (content) content.classList.add('hidden');
+    }
 
     try {
       const filters = this.getDateFilters();
@@ -244,38 +255,91 @@ const AnalyticsController = {
         }),
       ]);
 
-      if (skeletonView) skeletonView.classList.add('hidden');
-
       if (!data || data.total_feedback === 0) {
+        if (window.Skeletons) {
+          window.Skeletons.hide(skeletonView, content);
+        } else {
+          if (skeletonView) skeletonView.classList.add('hidden');
+          if (content) content.classList.add('hidden');
+        }
         if (emptyState) emptyState.classList.remove('hidden');
-        if (content) content.classList.add('hidden');
         return;
       }
 
       if (emptyState) emptyState.classList.add('hidden');
-      if (content) content.classList.remove('hidden');
+
+      // Swap skeleton to content
+      if (window.Skeletons) {
+        await window.Skeletons.swap(skeletonView, content);
+      } else {
+        if (skeletonView) skeletonView.classList.add('hidden');
+        if (content) content.classList.remove('hidden');
+      }
 
       // Update KPI highlights
       this.updateSummaryPills(data);
 
-      // Lazy-load Chart.js dynamically only when Analytics view requires it
-      await this.ensureChart();
+      // Lazy-load Chart.js dynamically from self-hosted vendor
+      const ChartClass = await this.ensureChart();
+      if (!ChartClass) {
+        console.warn('[AnalyticsController] Chart.js unavailable, charts will not render.');
+        return;
+      }
 
-      // Render Standard Charts
+      // Render Above-the-Fold Charts Immediately
       this.renderDistributionChart(data.sentiment_counts);
       this.renderTrendsChart(data.sentiment_trends);
-      this.renderCategoryChart(data.category_breakdown);
-      this.renderSourceChart(data.source_breakdown);
 
-      // Render Phase 4 Confidence Distribution Chart
-      this.renderConfidenceChart(confidenceAggregation);
+      // Render Below-the-Fold Charts with ScrollTrigger or Immediate Fallback
+      const catCanvas = document.getElementById('chart-categories');
+      if (catCanvas && window.ChartsMotion) {
+        window.ChartsMotion.observeVisibility(
+          catCanvas,
+          () => {
+            this.renderCategoryChart(data.category_breakdown);
+          },
+          'analytics'
+        );
+      } else {
+        this.renderCategoryChart(data.category_breakdown);
+      }
+
+      const srcCanvas = document.getElementById('chart-sources');
+      if (srcCanvas && window.ChartsMotion) {
+        window.ChartsMotion.observeVisibility(
+          srcCanvas,
+          () => {
+            this.renderSourceChart(data.source_breakdown);
+          },
+          'analytics'
+        );
+      } else {
+        this.renderSourceChart(data.source_breakdown);
+      }
+
+      const confCanvas = document.getElementById('chart-confidence');
+      if (confCanvas && window.ChartsMotion) {
+        window.ChartsMotion.observeVisibility(
+          confCanvas,
+          () => {
+            this.renderConfidenceChart(confidenceAggregation);
+          },
+          'analytics'
+        );
+      } else {
+        this.renderConfidenceChart(confidenceAggregation);
+      }
 
       // Render Negative Feedback Deep-Dive
       this.renderNegativeDeepDive(data.recent_negative_feedback);
     } catch (err) {
       console.error('Analytics load error:', err);
-      if (skeletonView) skeletonView.classList.add('hidden');
-      if (content) content.classList.add('hidden');
+      if (window.Skeletons) {
+        window.Skeletons.hide(skeletonView, content);
+      } else {
+        if (skeletonView) skeletonView.classList.add('hidden');
+        if (content) content.classList.add('hidden');
+      }
 
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         if (emptyState) emptyState.classList.add('hidden');
@@ -288,16 +352,29 @@ const AnalyticsController = {
   },
 
   updateSummaryPills(data) {
-    const setText = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = val;
-    };
+    const total = data.total_feedback || 0;
+    const posPct = data.sentiment_percentages ? data.sentiment_percentages.positive || 0 : 0;
+    const neuPct = data.sentiment_percentages ? data.sentiment_percentages.neutral || 0 : 0;
+    const negPct = data.sentiment_percentages ? data.sentiment_percentages.negative || 0 : 0;
+    const avgConf = ((data.average_confidence || 0) * 100).toFixed(1);
 
-    setText('analytics-summary-total', data.total_feedback.toLocaleString());
-    setText('analytics-summary-pos-pct', `${data.sentiment_percentages.positive || 0}%`);
-    setText('analytics-summary-neu-pct', `${data.sentiment_percentages.neutral || 0}%`);
-    setText('analytics-summary-neg-pct', `${data.sentiment_percentages.negative || 0}%`);
-    setText('analytics-summary-conf', `${((data.average_confidence || 0) * 100).toFixed(1)}%`);
+    if (window.Counters) {
+      window.Counters.animate('analytics-summary-total', total);
+      window.Counters.animate('analytics-summary-pos-pct', `${posPct}%`);
+      window.Counters.animate('analytics-summary-neu-pct', `${neuPct}%`);
+      window.Counters.animate('analytics-summary-neg-pct', `${negPct}%`);
+      window.Counters.animate('analytics-summary-conf', `${avgConf}%`);
+    } else {
+      const setText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+      setText('analytics-summary-total', total.toLocaleString());
+      setText('analytics-summary-pos-pct', `${posPct}%`);
+      setText('analytics-summary-neu-pct', `${neuPct}%`);
+      setText('analytics-summary-neg-pct', `${negPct}%`);
+      setText('analytics-summary-conf', `${avgConf}%`);
+    }
   },
 
   getThemeColors() {
@@ -319,6 +396,9 @@ const AnalyticsController = {
     }
 
     const { textColor } = this.getThemeColors();
+    const animConfig = window.ChartsMotion
+      ? window.ChartsMotion.getAnimationConfig('doughnut')
+      : {};
 
     this.charts.distribution = new Chart(canvas, {
       type: 'doughnut',
@@ -341,6 +421,7 @@ const AnalyticsController = {
         ],
       },
       options: {
+        ...animConfig,
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
@@ -352,6 +433,10 @@ const AnalyticsController = {
         cutout: '68%',
       },
     });
+
+    if (window.ChartsMotion) {
+      window.ChartsMotion.registerChart('analytics', this.charts.distribution);
+    }
   },
 
   renderTrendsChart(trends) {
@@ -363,6 +448,9 @@ const AnalyticsController = {
     }
 
     const { textColor, gridColor } = this.getThemeColors();
+    const animConfig = window.ChartsMotion
+      ? window.ChartsMotion.getAnimationConfig('stagedBar')
+      : {};
 
     const labels = (trends || []).map((t) => t.date);
     const posData = (trends || []).map((t) => t.positive);
@@ -380,6 +468,7 @@ const AnalyticsController = {
         ],
       },
       options: {
+        ...animConfig,
         responsive: true,
         maintainAspectRatio: false,
         scales: {
@@ -402,6 +491,10 @@ const AnalyticsController = {
         },
       },
     });
+
+    if (window.ChartsMotion) {
+      window.ChartsMotion.registerChart('analytics', this.charts.trends);
+    }
   },
 
   renderCategoryChart(categories) {
@@ -413,6 +506,9 @@ const AnalyticsController = {
     }
 
     const { textColor, gridColor } = this.getThemeColors();
+    const animConfig = window.ChartsMotion
+      ? window.ChartsMotion.getAnimationConfig('stagedBar')
+      : {};
 
     const topCats = (categories || []).slice(0, 6);
     const labels = topCats.map((c) => c.category);
@@ -429,6 +525,7 @@ const AnalyticsController = {
         ],
       },
       options: {
+        ...animConfig,
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
@@ -450,6 +547,10 @@ const AnalyticsController = {
         },
       },
     });
+
+    if (window.ChartsMotion) {
+      window.ChartsMotion.registerChart('analytics', this.charts.categories);
+    }
   },
 
   renderSourceChart(sources) {
@@ -461,6 +562,9 @@ const AnalyticsController = {
     }
 
     const { textColor, gridColor } = this.getThemeColors();
+    const animConfig = window.ChartsMotion
+      ? window.ChartsMotion.getAnimationConfig('bar')
+      : {};
 
     const topSources = (sources || []).slice(0, 5);
     const labels = topSources.map((s) => s.source.toUpperCase());
@@ -479,6 +583,7 @@ const AnalyticsController = {
         ],
       },
       options: {
+        ...animConfig,
         responsive: true,
         maintainAspectRatio: false,
         scales: {
@@ -496,6 +601,10 @@ const AnalyticsController = {
         },
       },
     });
+
+    if (window.ChartsMotion) {
+      window.ChartsMotion.registerChart('analytics', this.charts.sources);
+    }
   },
 
   /**
@@ -526,6 +635,9 @@ const AnalyticsController = {
     if (wrapperEl) wrapperEl.classList.remove('hidden');
 
     const { textColor, gridColor, tooltipBg, tooltipText } = this.getThemeColors();
+    const animConfig = window.ChartsMotion
+      ? window.ChartsMotion.getAnimationConfig('bar')
+      : {};
     const helper = window.ConfidenceHelper;
     const labels = helper
       ? helper.CONFIDENCE_BUCKET_LABELS
@@ -552,6 +664,7 @@ const AnalyticsController = {
         ],
       },
       options: {
+        ...animConfig,
         responsive: true,
         maintainAspectRatio: false,
         scales: {
@@ -594,6 +707,10 @@ const AnalyticsController = {
         },
       },
     });
+
+    if (window.ChartsMotion) {
+      window.ChartsMotion.registerChart('analytics', this.charts.confidence);
+    }
   },
 
   updateChartThemes() {

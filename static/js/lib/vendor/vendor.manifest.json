@@ -1,0 +1,58 @@
+{
+  "gsap": {
+    "file": "gsap.min.js",
+    "version": "3.13.0",
+    "sha384": "sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc",
+    "global": "gsap",
+    "tier": 1,
+    "bytes": 72435
+  },
+  "scrollTrigger": {
+    "file": "ScrollTrigger.min.js",
+    "version": "3.13.0",
+    "sha384": "sha384-P8VzCVnT9NBUkMrpcIZrJbA7EBjJvh/fJS6PmP+4nLIM284DtsImIv8D0fFjIkeh",
+    "global": "ScrollTrigger",
+    "tier": 2,
+    "bytes": 44157
+  },
+  "flip": {
+    "file": "Flip.min.js",
+    "version": "3.13.0",
+    "sha384": "sha384-lg3+EgIwmxYq9YD4ix279pdUEasqmOS17fF+2mI/NEg6JHkawYaWYpJ6nKZenPOy",
+    "global": "Flip",
+    "tier": 2,
+    "bytes": 25013
+  },
+  "countUp": {
+    "file": "countup.min.js",
+    "version": "2.8.0",
+    "sha384": "sha384-DsT1q/+aTIkNUICSMoPHLh8RDdgN2BaPm3ThHPGAuETCIdf1vPGwFsoMy/SrKZ7W",
+    "global": "countUp",
+    "tier": 2,
+    "bytes": 5979
+  },
+  "splitType": {
+    "file": "split-type.min.js",
+    "version": "0.3.4",
+    "sha384": "sha384-wQImCCD/id1jPTwSloatzKlEpnEAQ5aH8H2Ud27FnNcJ1lf2+hB75ctoWnWxyD8X",
+    "global": "SplitType",
+    "tier": 2,
+    "bytes": 11804
+  },
+  "confetti": {
+    "file": "confetti.min.js",
+    "version": "1.9.3",
+    "sha384": "sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+",
+    "global": "confetti",
+    "tier": 3,
+    "bytes": 24906
+  },
+  "chart": {
+    "file": "chart.min.js",
+    "version": "4.4.2",
+    "sha384": "sha384-zuFoHkJ6+XzUchVtS39qBWxb+LvdA7aQ/ze8jYdufBf/A1jeuKGDBg4crfxvZAr8",
+    "global": "Chart",
+    "tier": 2,
+    "bytes": 205214
+  }
+}

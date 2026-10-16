@@ -7,9 +7,61 @@
 const ImportsController = {
   selectedFile: null,
   pollingInterval: null,
+  _lastProgressPct: 0,
+  _statusPulseTween: null,
+  _activeImportTween: null,
 
   init() {
     this.bindEvents();
+  },
+
+  cleanup() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+
+    this.stopPollingPulse();
+
+    if (this._activeImportTween) {
+      try {
+        if (typeof this._activeImportTween.kill === 'function') this._activeImportTween.kill();
+      } catch {}
+      this._activeImportTween = null;
+    }
+
+    if (window.AnimationManager) {
+      window.AnimationManager.killViewAnimations('import-export');
+    }
+  },
+
+  startPollingPulse() {
+    const pulseDot = document.getElementById('import-pulse-dot');
+    if (!pulseDot) return;
+
+    pulseDot.classList.remove('hidden');
+
+    const isReduced = window.AnimationManager && window.AnimationManager.isReducedMotion();
+    if (isReduced) {
+      pulseDot.classList.remove('animate-pulse');
+      return;
+    }
+
+    pulseDot.classList.add('animate-pulse');
+  },
+
+  stopPollingPulse() {
+    const pulseDot = document.getElementById('import-pulse-dot');
+    if (pulseDot) {
+      pulseDot.classList.add('hidden');
+      pulseDot.classList.remove('animate-pulse');
+    }
+    if (this._statusPulseTween) {
+      try {
+        if (typeof this._statusPulseTween.kill === 'function') this._statusPulseTween.kill();
+      } catch {}
+      this._statusPulseTween = null;
+    }
   },
 
   bindEvents() {
@@ -78,13 +130,21 @@ const ImportsController = {
   },
 
   handleFileSelected(file) {
+    const dropZone = document.getElementById('import-dropzone');
+
     if (!file.name.toLowerCase().endsWith('.csv')) {
+      if (dropZone && window.AnimationManager && !window.AnimationManager.isReducedMotion()) {
+        window.AnimationManager.play('errorShake', dropZone, {}, 'import-export');
+      }
       window.showToast('Only CSV (.csv) files are supported.', 'error');
       return;
     }
 
     const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
     if (file.size > MAX_SIZE) {
+      if (dropZone && window.AnimationManager && !window.AnimationManager.isReducedMotion()) {
+        window.AnimationManager.play('errorShake', dropZone, {}, 'import-export');
+      }
       window.showToast(
         `File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds 5MB limit.`,
         'error'
@@ -127,13 +187,28 @@ const ImportsController = {
     const statusCard = document.getElementById('import-status-card');
     const progressText = document.getElementById('import-progress-status');
     const progressBar = document.getElementById('import-progress-bar');
+    const progressPct = document.getElementById('import-progress-pct');
     const resultSummary = document.getElementById('import-result-summary');
 
-    if (uploadBtn) uploadBtn.disabled = true;
+    this._lastProgressPct = 20;
+
+    if (uploadBtn) {
+      uploadBtn.disabled = true;
+      if (window.AnimationManager && !window.AnimationManager.isReducedMotion()) {
+        window.AnimationManager.play('progressMorph', uploadBtn, {}, 'import-export');
+      }
+    }
+
     if (statusCard) statusCard.classList.remove('hidden');
     if (progressText) progressText.textContent = 'Uploading CSV file to server...';
     if (progressBar) progressBar.style.width = '20%';
+    if (progressPct) {
+      progressPct.textContent = '20%';
+      progressPct.classList.remove('hidden');
+    }
     if (resultSummary) resultSummary.classList.add('hidden');
+
+    this.startPollingPulse();
 
     try {
       const job = await window.api.uploadCSV(this.selectedFile);
@@ -149,8 +224,16 @@ const ImportsController = {
       }
     } catch (err) {
       console.error('Import upload error:', err);
+      this.stopPollingPulse();
+
       if (progressText) progressText.textContent = `Upload error: ${err.message}`;
       if (progressBar) progressBar.style.width = '0%';
+      if (progressPct) progressPct.textContent = '0%';
+
+      if (statusCard && window.AnimationManager && !window.AnimationManager.isReducedMotion()) {
+        window.AnimationManager.play('errorShake', statusCard, {}, 'import-export');
+      }
+
       window.showToast(err.message || 'CSV upload failed.', 'error');
       if (uploadBtn) uploadBtn.disabled = false;
     }
@@ -159,8 +242,12 @@ const ImportsController = {
   pollJob(jobId) {
     const progressText = document.getElementById('import-progress-status');
     const progressBar = document.getElementById('import-progress-bar');
+    const progressPct = document.getElementById('import-progress-pct');
 
-    clearInterval(this.pollingInterval);
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+    }
+
     this.pollingInterval = setInterval(async () => {
       try {
         const job = await window.api.getImportJob(jobId);
@@ -168,13 +255,20 @@ const ImportsController = {
         const total = job.total_rows || 1;
         const pct = Math.min(Math.round((processed / total) * 100), 95);
 
-        if (progressBar) progressBar.style.width = `${pct}%`;
-        if (progressText)
+        // Guard against progress moving backwards
+        const displayPct = Math.max(pct, this._lastProgressPct);
+        this._lastProgressPct = displayPct;
+
+        if (progressBar) progressBar.style.width = `${displayPct}%`;
+        if (progressPct) progressPct.textContent = `${displayPct}%`;
+        if (progressText) {
           progressText.textContent = `Processing records (${processed} / ${total})...`;
+        }
 
         if (job.status === 'COMPLETED' || job.status === 'FAILED') {
           clearInterval(this.pollingInterval);
-          if (progressBar) progressBar.style.width = '100%';
+          this.pollingInterval = null;
+
           if (job.status === 'COMPLETED') {
             this.renderJobSuccess(job);
           } else {
@@ -183,19 +277,29 @@ const ImportsController = {
         }
       } catch (err) {
         clearInterval(this.pollingInterval);
+        this.pollingInterval = null;
+        this.stopPollingPulse();
         if (progressText) progressText.textContent = `Polling error: ${err.message}`;
       }
     }, 1500);
   },
 
-  renderJobSuccess(job) {
+  async renderJobSuccess(job) {
+    this.stopPollingPulse();
+
     const progressText = document.getElementById('import-progress-status');
+    const progressBar = document.getElementById('import-progress-bar');
+    const progressPct = document.getElementById('import-progress-pct');
     const resultSummary = document.getElementById('import-result-summary');
+    const successIcon = document.getElementById('import-success-icon');
     const totalCount = document.getElementById('import-stat-total');
     const successCount = document.getElementById('import-stat-success');
     const failCount = document.getElementById('import-stat-failed');
     const errorBox = document.getElementById('import-error-box');
+    const uploadBtn = document.getElementById('import-submit-btn');
 
+    if (progressBar) progressBar.style.width = '100%';
+    if (progressPct) progressPct.textContent = '100%';
     if (progressText) progressText.textContent = 'Import Job Completed Successfully!';
     if (totalCount) totalCount.textContent = job.total_rows;
     if (successCount) successCount.textContent = job.successful_rows;
@@ -215,7 +319,24 @@ const ImportsController = {
       }
     }
 
-    if (resultSummary) resultSummary.classList.remove('hidden');
+    if (resultSummary) {
+      resultSummary.classList.remove('hidden');
+      const isReduced = window.AnimationManager && window.AnimationManager.isReducedMotion();
+
+      if (!isReduced && window.AnimationManager) {
+        // Celebratory summary card entrance
+        window.AnimationManager.play('celebrationBurst', resultSummary, {}, 'import-export');
+
+        if (successIcon) {
+          window.AnimationManager.play('successPop', successIcon, {}, 'import-export');
+        }
+
+        // Bounded, one-shot confetti celebration (lazy-loaded via VendorLoader)
+        window.AnimationManager.celebrate();
+      }
+    }
+
+    if (uploadBtn) uploadBtn.disabled = true;
     window.showToast(`Imported ${job.successful_rows} feedback records!`, 'success');
 
     // Notify Explorer and Overview to refresh
@@ -223,9 +344,13 @@ const ImportsController = {
   },
 
   renderJobFailure(job) {
+    this.stopPollingPulse();
+
     const progressText = document.getElementById('import-progress-status');
     const resultSummary = document.getElementById('import-result-summary');
     const errorBox = document.getElementById('import-error-box');
+    const statusCard = document.getElementById('import-status-card');
+    const uploadBtn = document.getElementById('import-submit-btn');
 
     if (progressText) progressText.textContent = 'Import Job Failed.';
     if (errorBox) {
@@ -238,7 +363,18 @@ const ImportsController = {
       errorBox.innerHTML = errors.map((e) => `<li>${window.escapeHtml(e)}</li>`).join('');
       errorBox.classList.remove('hidden');
     }
+
     if (resultSummary) resultSummary.classList.remove('hidden');
+
+    const isReduced = window.AnimationManager && window.AnimationManager.isReducedMotion();
+    if (!isReduced && window.AnimationManager) {
+      const shakeTarget = errorBox || statusCard;
+      if (shakeTarget) {
+        window.AnimationManager.play('errorShake', shakeTarget, {}, 'import-export');
+      }
+    }
+
+    if (uploadBtn) uploadBtn.disabled = false;
     window.showToast('Import job failed. Please inspect error log.', 'error');
   },
 };

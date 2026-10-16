@@ -22,16 +22,16 @@ describe('PWA & Offline Shell Helpers', () => {
   describe('Cache Version Generation', () => {
     it('generates the default deterministic cache name', () => {
       assert.equal(SHELL_CACHE_PREFIX, 'sentiment-pulse-shell-');
-      assert.equal(DEFAULT_SHELL_VERSION, 'v2');
-      assert.equal(getCacheName(), 'sentiment-pulse-shell-v2');
-      assert.equal(getCacheName(''), 'sentiment-pulse-shell-v2');
-      assert.equal(getCacheName(null), 'sentiment-pulse-shell-v2');
+      assert.equal(DEFAULT_SHELL_VERSION, 'v3');
+      assert.equal(getCacheName(), 'sentiment-pulse-shell-v3');
+      assert.equal(getCacheName(''), 'sentiment-pulse-shell-v3');
+      assert.equal(getCacheName(null), 'sentiment-pulse-shell-v3');
     });
 
     it('generates a versioned cache name when a specific version is provided', () => {
-      assert.equal(getCacheName('v3'), 'sentiment-pulse-shell-v3');
+      assert.equal(getCacheName('v4'), 'sentiment-pulse-shell-v4');
       assert.equal(getCacheName('2026-10-15'), 'sentiment-pulse-shell-2026-10-15');
-      assert.equal(getCacheName('  v4  '), 'sentiment-pulse-shell-v4');
+      assert.equal(getCacheName('  v5  '), 'sentiment-pulse-shell-v5');
     });
 
     it('includes essential local shell assets in the pre-cache list', () => {
@@ -40,11 +40,22 @@ describe('PWA & Offline Shell Helpers', () => {
       assert.ok(SHELL_ASSETS.includes('/static/manifest.webmanifest'));
       assert.ok(SHELL_ASSETS.includes('/static/css/tailwind.min.css'));
       assert.ok(SHELL_ASSETS.includes('/static/css/app.css'));
+      assert.ok(SHELL_ASSETS.includes('/static/css/motion-tokens.css'));
+      assert.ok(SHELL_ASSETS.includes('/static/css/skeletons.css'));
       assert.ok(SHELL_ASSETS.includes('/static/js/app.js'));
       assert.ok(SHELL_ASSETS.includes('/static/icons/icon-192x192.png'));
       assert.ok(SHELL_ASSETS.includes('/static/icons/icon-512x512.png'));
       assert.ok(SHELL_ASSETS.includes('/static/icons/icon-maskable-192x192.png'));
       assert.ok(SHELL_ASSETS.includes('/static/icons/icon-maskable-512x512.png'));
+      assert.ok(SHELL_ASSETS.includes('/static/js/lib/motion/animation.js'));
+      assert.ok(SHELL_ASSETS.includes('/static/js/lib/motion/vendor-loader.js'));
+      assert.ok(SHELL_ASSETS.includes('/static/js/lib/motion/presets.js'));
+      assert.ok(SHELL_ASSETS.includes('/static/js/lib/motion/reveal.js'));
+      assert.ok(SHELL_ASSETS.includes('/static/js/lib/motion/transitions.js'));
+      assert.ok(SHELL_ASSETS.includes('/static/js/lib/motion/counters.js'));
+      assert.ok(SHELL_ASSETS.includes('/static/js/lib/motion/skeletons.js'));
+      assert.ok(SHELL_ASSETS.includes('/static/js/lib/motion/charts-motion.js'));
+      assert.ok(SHELL_ASSETS.includes('/static/js/lib/vendor/vendor.manifest.json'));
     });
   });
 
