@@ -16,6 +16,7 @@ export const MicroInteractions = {
   _boundPointerCancel: null,
   _boundPointerEnter: null,
   _boundPointerLeave: null,
+  _brandCleanups: [],
 
   /**
    * Initialize delegated event listeners for micro-interactions across the document.
@@ -42,6 +43,8 @@ export const MicroInteractions = {
       capture: true,
       passive: true,
     });
+
+    this.initBrandLogoParallax();
   },
 
   /**
@@ -63,6 +66,82 @@ export const MicroInteractions = {
       this._resetTransform(this._activePressedEl);
       this._activePressedEl = null;
     }
+
+    if (this._brandCleanups && this._brandCleanups.length > 0) {
+      this._brandCleanups.forEach((fn) => {
+        try {
+          fn();
+        } catch {
+          // ignore cleanup error
+        }
+      });
+      this._brandCleanups = [];
+    }
+  },
+
+  /**
+   * Initializes interactive 3D pointer parallax and visibility pausing for brand logo.
+   */
+  initBrandLogoParallax() {
+    if (typeof document === 'undefined') return;
+
+    const brandLinks = document.querySelectorAll('.brand-header-link');
+    if (!brandLinks || brandLinks.length === 0) return;
+
+    brandLinks.forEach((brandLink) => {
+      const stage = brandLink.querySelector('.brand-3d-stage');
+      if (!stage) return;
+
+      const onPointerMove = (e) => {
+        if (AnimationManager.isReducedMotion()) return;
+        const rect = brandLink.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
+        const x = (e.clientX - rect.left) / rect.width - 0.5;
+        const y = (e.clientY - rect.top) / rect.height - 0.5;
+
+        const tiltX = -y * 14;
+        const tiltY = x * 14;
+
+        stage.style.animationPlayState = 'paused';
+        stage.style.transition = 'transform 80ms ease-out';
+        stage.style.transform = `rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateZ(6px)`;
+      };
+
+      const onPointerLeave = () => {
+        if (AnimationManager.isReducedMotion()) return;
+        stage.style.transition = 'transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+        stage.style.transform = '';
+        setTimeout(() => {
+          if (stage && !brandLink.matches(':hover')) {
+            stage.style.animationPlayState = '';
+            stage.style.transition = '';
+          }
+        }, 460);
+      };
+
+      brandLink.addEventListener('pointermove', onPointerMove, { passive: true });
+      brandLink.addEventListener('pointerleave', onPointerLeave, { passive: true });
+
+      this._brandCleanups.push(() => {
+        brandLink.removeEventListener('pointermove', onPointerMove);
+        brandLink.removeEventListener('pointerleave', onPointerLeave);
+      });
+    });
+
+    // Pause CSS animation when document is hidden to conserve GPU/battery
+    const onVisibilityChange = () => {
+      const isHidden = Boolean(document.hidden);
+      const containers = document.querySelectorAll('.brand-3d-container');
+      containers.forEach((c) => {
+        c.classList.toggle('brand-3d-paused', isHidden);
+      });
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    this._brandCleanups.push(() => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    });
   },
 
   /**

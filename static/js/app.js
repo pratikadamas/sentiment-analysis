@@ -193,6 +193,16 @@ const App = {
   },
 
   bindNavigation() {
+    // Brand link clicks (both desktop and mobile)
+    const brandLinks = document.querySelectorAll('.brand-header-link');
+    brandLinks.forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.switchView('overview');
+        this.closeMobileDrawer();
+      });
+    });
+
     // Navigation link clicks (both desktop and mobile)
     const navLinks = document.querySelectorAll('.nav-link');
     navLinks.forEach((link) => {
