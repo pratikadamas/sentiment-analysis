@@ -243,176 +243,174 @@
   background-color: rgba(99, 102, 241, 0.08);
 }
 
-.brand-header-link:hover .brand-3d-halo {
-  opacity: 0.85;
-  transform: scale(1.15);
-}
+/* ==============================================================================
+   2D Animated Brand Icon Subsystem (Sentiment Pulse)
+   Pure 2D SVG & CSS keyframe animation engine.
+   Strictly zero 3D / WebGL / Canvas dependencies.
+   ============================================================================== */
 
-.brand-header-link:hover .brand-layer-glyph {
-  transform: translateZ(20px);
-}
-
-.brand-header-link:hover .brand-layer-core {
-  opacity: 0.95;
-  transform: translateZ(12px) scale(1.12);
-}
-
-.brand-header-link:hover .brand-layer-sheen {
-  opacity: 0.75;
-}
-
-/* 3D Container & Perspective */
-.brand-3d-container {
-  perspective: 600px;
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-
-/* Ambient Radial Nebula / Halo behind the icon */
-.brand-3d-halo {
-  position: absolute;
-  inset: -6px;
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.45) 0%, rgba(168, 85, 247, 0.25) 45%, transparent 70%);
-  filter: blur(10px);
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.55;
-  transition: opacity 0.4s ease, transform 0.4s ease;
-  animation: brand-halo-breathe 4s ease-in-out infinite alternate;
-}
-
-.dark .brand-3d-halo {
-  background: radial-gradient(circle, rgba(129, 140, 248, 0.55) 0%, rgba(168, 85, 247, 0.35) 45%, transparent 70%);
-  opacity: 0.65;
-}
-
-@keyframes brand-halo-breathe {
-  0% {
-    opacity: 0.45;
-    transform: scale(0.92);
-  }
-  100% {
-    opacity: 0.75;
-    transform: scale(1.08);
-  }
-}
-
-/* 3D Transform Stage */
-.brand-3d-stage {
+.brand-2d-container,
+.brand-icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  border-radius: 0.75rem;
-  animation: brand-float-3d 6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 2.5rem;   /* 40px */
+  height: 2.5rem;  /* 40px */
+  flex-shrink: 0;
+  border-radius: 0.625rem;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
 }
 
-@keyframes brand-float-3d {
-  0% {
-    transform: rotateX(6deg) rotateY(-8deg) rotateZ(0.5deg) translateY(0px);
-  }
-  50% {
-    transform: rotateX(-5deg) rotateY(9deg) rotateZ(-0.5deg) translateY(-2px);
-  }
-  100% {
-    transform: rotateX(6deg) rotateY(-8deg) rotateZ(0.5deg) translateY(0px);
-  }
+.brand-2d-container.mobile-size,
+.brand-icon-container.mobile-size {
+  width: 2rem;     /* 32px */
+  height: 2rem;    /* 32px */
 }
 
-/* Base Dimensional Layers */
-.brand-layer {
-  position: absolute;
-  inset: 0;
-  border-radius: 0.75rem;
+/* Hover Micro-Interaction on the Link */
+.brand-header-link:hover .brand-2d-container,
+.brand-header-link:hover .brand-icon-container {
+  transform: scale(1.04);
+}
+
+.brand-header-link:active .brand-2d-container,
+.brand-header-link:active .brand-icon-container {
+  transform: scale(0.97);
+}
+
+/* SVG Badge Baseplate Styling */
+.brand-badge-bg {
+  transition: stroke 0.3s ease, filter 0.3s ease;
+  filter: drop-shadow(0 2px 6px rgba(79, 70, 229, 0.25));
+}
+
+.dark .brand-badge-bg {
+  filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.35));
+}
+
+.brand-header-link:hover .brand-badge-bg {
+  stroke: rgba(255, 255, 255, 0.65);
+  filter: drop-shadow(0 3px 10px rgba(99, 102, 241, 0.45));
+}
+
+/* Concentric Pulse Rings */
+.brand-ring-inner,
+.brand-ring-outer {
+  transform-origin: 20px 20px;
   pointer-events: none;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
 }
 
-/* Layer 1: Chamfered Obsidian / Glass Baseplate */
-.brand-layer-base {
-  transform: translateZ(0px);
-  background: linear-gradient(135deg, #4f46e5 0%, #3730a3 45%, #6366f1 100%);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  box-shadow: 
-    0 4px 14px -2px rgba(79, 70, 229, 0.45),
-    0 2px 6px -1px rgba(99, 102, 241, 0.3),
-    inset 0 1px 1px rgba(255, 255, 255, 0.4),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.4);
+.brand-ring-inner {
+  animation: brand-ring-breathe 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-.dark .brand-layer-base {
-  background: linear-gradient(135deg, #312e81 0%, #1e1b4b 50%, #4338ca 100%);
-  border: 1px solid rgba(165, 180, 252, 0.4);
-  box-shadow: 
-    0 4px 16px -2px rgba(99, 102, 241, 0.5),
-    0 2px 8px -1px rgba(129, 140, 248, 0.35),
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.35),
-    inset 0 0 12px rgba(99, 102, 241, 0.25);
+.brand-ring-outer {
+  animation: brand-ring-breathe 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.4s;
 }
 
-/* Layer 2: Tech Quantum Grid */
-.brand-layer-grid {
-  transform: translateZ(5px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+@keyframes brand-ring-breathe {
+  0%, 100% {
+    transform: scale(0.94);
+    opacity: 0.25;
+  }
+  45% {
+    transform: scale(1.06);
+    opacity: 0.65;
+  }
 }
 
-/* Layer 3: Central Emissive Energy Core */
-.brand-layer-core {
-  transform: translateZ(10px);
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.85) 0%, rgba(129, 140, 248, 0.5) 40%, transparent 70%);
-  opacity: 0.7;
-  filter: blur(3px);
-  animation: brand-core-pulse 3s ease-in-out infinite alternate;
+/* Customer Sentiment Arc (Harmonic Smile Resonance) */
+.brand-sentiment-arc {
+  animation: brand-sentiment-breathe 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-@keyframes brand-core-pulse {
+@keyframes brand-sentiment-breathe {
+  0%, 100% {
+    opacity: 0.4;
+    stroke-width: 1.3;
+  }
+  45% {
+    opacity: 0.85;
+    stroke-width: 1.6;
+  }
+}
+
+/* Primary Waveform */
+.brand-pulse-wave {
+  filter: drop-shadow(0 0 2px rgba(129, 140, 248, 0.5));
+}
+
+/* Waveform Pulse Highlight Travel (Light packet gliding across signal path) */
+.brand-wave-highlight {
+  stroke-dasharray: 14 75;
+  stroke-dashoffset: 14;
+  animation: brand-wave-travel 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes brand-wave-travel {
   0% {
-    opacity: 0.55;
-    transform: translateZ(10px) scale(0.92);
+    stroke-dashoffset: 14;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.95;
+  }
+  60% {
+    stroke-dashoffset: -65;
+    opacity: 0.95;
+  }
+  68% {
+    opacity: 0;
+    stroke-dashoffset: -75;
   }
   100% {
-    opacity: 0.85;
-    transform: translateZ(10px) scale(1.08);
+    stroke-dashoffset: -75;
+    opacity: 0;
   }
 }
 
-/* Layer 4: Precision 3D Dimensional Lightning Glyph */
-.brand-layer-glyph {
-  transform: translateZ(16px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Central Beacon Aura Glow */
+.brand-beacon-aura {
+  transform-origin: 20px 20px;
+  animation: brand-aura-pulse 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
 }
 
-.brand-glyph-svg {
-  filter: drop-shadow(0 0 4px rgba(129, 140, 248, 0.7)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+@keyframes brand-aura-pulse {
+  0%, 100% {
+    transform: scale(0.85);
+    opacity: 0.35;
+  }
+  45% {
+    transform: scale(1.28);
+    opacity: 0.85;
+  }
 }
 
-/* Layer 5: Glass Specular Sheen */
-.brand-layer-sheen {
-  transform: translateZ(22px);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.05) 38%, transparent 55%);
-  border-radius: 0.75rem;
-  opacity: 0.45;
-  transition: opacity 0.3s ease;
+/* Central Signal Node & Core */
+.brand-beacon-node {
+  transform-origin: 20px 20px;
+  animation: brand-beacon-pulse 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transition: transform 0.2s ease;
 }
 
-/* Layer 6: Outer Chamfered Bezel Edge Light */
-.brand-layer-bezel {
-  transform: translateZ(24px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 0.75rem;
-  box-shadow: inset 0 0 3px rgba(167, 139, 250, 0.25);
+@keyframes brand-beacon-pulse {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+  45% {
+    transform: scale(1.18);
+    opacity: 1;
+    filter: drop-shadow(0 0 3px #38bdf8);
+  }
 }
 
-.dark .brand-layer-bezel {
-  border-color: rgba(255, 255, 255, 0.22);
+.brand-beacon-core {
+  transform-origin: 20px 20px;
+  animation: brand-beacon-pulse 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 /* Brand Typography & Wordmark */
@@ -455,48 +453,43 @@
   border-color: rgba(99, 102, 241, 0.3);
 }
 
-/* Responsive Scaling for Mobile Bar */
-.brand-3d-container.mobile-size {
-  width: 2rem;
-  height: 2rem;
-}
-
-.brand-3d-container.mobile-size .brand-layer-glyph svg {
-  width: 1.125rem;
-  height: 1.125rem;
-}
-
-/* Reduced Motion Mode */
+/* Reduced Motion Mode (A11y Compliance) */
 @media (prefers-reduced-motion: reduce) {
-  .brand-3d-stage {
-    animation: none !important;
-    transform: rotateX(5deg) rotateY(-6deg) !important;
+  .brand-2d-container,
+  .brand-icon-container,
+  .brand-header-link:hover .brand-2d-container,
+  .brand-header-link:hover .brand-icon-container {
+    transform: none !important;
     transition: none !important;
   }
 
-  .brand-3d-halo {
+  .brand-ring-inner,
+  .brand-ring-outer,
+  .brand-sentiment-arc,
+  .brand-beacon-aura,
+  .brand-beacon-node,
+  .brand-beacon-core {
     animation: none !important;
-    opacity: 0.6 !important;
     transform: none !important;
+    transition: none !important;
+    opacity: 0.65 !important;
   }
 
-  .brand-layer-core {
-    animation: none !important;
-    opacity: 0.7 !important;
-    transform: translateZ(10px) !important;
+  .brand-beacon-node,
+  .brand-beacon-core {
+    opacity: 1 !important;
   }
 
-  .brand-header-link:hover .brand-layer-glyph,
-  .brand-header-link:hover .brand-layer-core,
-  .brand-header-link:hover .brand-3d-halo {
-    transform: none !important;
+  .brand-wave-highlight {
+    animation: none !important;
+    display: none !important;
   }
 }
 
 /* Document Hidden / Battery Saver State */
-.brand-3d-paused .brand-3d-stage,
-.brand-3d-paused .brand-3d-halo,
-.brand-3d-paused .brand-layer-core {
+.brand-2d-paused *,
+.brand-icon-paused *,
+.brand-3d-paused * {
   animation-play-state: paused !important;
 }
 

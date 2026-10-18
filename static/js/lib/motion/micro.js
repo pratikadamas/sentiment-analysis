@@ -80,60 +80,21 @@ export const MicroInteractions = {
   },
 
   /**
-   * Initializes interactive 3D pointer parallax and visibility pausing for brand logo.
+   * Initializes 2D brand logo interaction lifecycle and visibility pausing.
+   * Maintains backward-compatible method signature while supporting 2D brand icon.
    */
   initBrandLogoParallax() {
     if (typeof document === 'undefined') return;
 
-    const brandLinks = document.querySelectorAll('.brand-header-link');
-    if (!brandLinks || brandLinks.length === 0) return;
-
-    brandLinks.forEach((brandLink) => {
-      const stage = brandLink.querySelector('.brand-3d-stage');
-      if (!stage) return;
-
-      const onPointerMove = (e) => {
-        if (AnimationManager.isReducedMotion()) return;
-        const rect = brandLink.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) return;
-
-        const x = (e.clientX - rect.left) / rect.width - 0.5;
-        const y = (e.clientY - rect.top) / rect.height - 0.5;
-
-        const tiltX = -y * 14;
-        const tiltY = x * 14;
-
-        stage.style.animationPlayState = 'paused';
-        stage.style.transition = 'transform 80ms ease-out';
-        stage.style.transform = `rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateZ(6px)`;
-      };
-
-      const onPointerLeave = () => {
-        if (AnimationManager.isReducedMotion()) return;
-        stage.style.transition = 'transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-        stage.style.transform = '';
-        setTimeout(() => {
-          if (stage && !brandLink.matches(':hover')) {
-            stage.style.animationPlayState = '';
-            stage.style.transition = '';
-          }
-        }, 460);
-      };
-
-      brandLink.addEventListener('pointermove', onPointerMove, { passive: true });
-      brandLink.addEventListener('pointerleave', onPointerLeave, { passive: true });
-
-      this._brandCleanups.push(() => {
-        brandLink.removeEventListener('pointermove', onPointerMove);
-        brandLink.removeEventListener('pointerleave', onPointerLeave);
-      });
-    });
-
     // Pause CSS animation when document is hidden to conserve GPU/battery
     const onVisibilityChange = () => {
       const isHidden = Boolean(document.hidden);
-      const containers = document.querySelectorAll('.brand-3d-container');
+      const containers = document.querySelectorAll(
+        '.brand-2d-container, .brand-icon-container, .brand-3d-container'
+      );
       containers.forEach((c) => {
+        c.classList.toggle('brand-2d-paused', isHidden);
+        c.classList.toggle('brand-icon-paused', isHidden);
         c.classList.toggle('brand-3d-paused', isHidden);
       });
     };
@@ -142,6 +103,13 @@ export const MicroInteractions = {
     this._brandCleanups.push(() => {
       document.removeEventListener('visibilitychange', onVisibilityChange);
     });
+  },
+
+  /**
+   * Alias for 2D brand logo initialization.
+   */
+  initBrandLogo() {
+    return this.initBrandLogoParallax();
   },
 
   /**

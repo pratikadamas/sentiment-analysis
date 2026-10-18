@@ -1,5 +1,5 @@
 /**
- * Sentiment Pulse - 3D Brand Logo & Premium Typography Test Suite
+ * Sentiment Pulse - 2D Brand Logo & Premium Typography Test Suite
  * Verified via Node.js native test runner: node --test tests/frontend/brand-logo.test.js
  */
 
@@ -16,38 +16,42 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '../..');
 
-describe('3D Brand Logo & Premium Typography Subsystem', () => {
+describe('2D Brand Logo & Premium Typography Subsystem', () => {
   const indexHtml = fs.readFileSync(path.join(rootDir, 'templates/index.html'), 'utf-8');
   const appCss = fs.readFileSync(path.join(rootDir, 'static/css/app.css'), 'utf-8');
 
   describe('Markup & DOM Hierarchy', () => {
-    it('contains the desktop sidebar 3D logo container with aria-hidden', () => {
+    it('contains the desktop sidebar 2D logo container with aria-hidden', () => {
       assert.ok(indexHtml.includes('id="sidebar-brand-logo"'));
       assert.ok(
         indexHtml.includes(
-          'class="brand-3d-container relative w-10 h-10 select-none flex-shrink-0"'
+          'class="brand-2d-container relative w-10 h-10 select-none flex-shrink-0"'
         )
       );
       assert.ok(indexHtml.includes('id="sidebar-brand-logo" aria-hidden="true"'));
     });
 
-    it('contains all 6 required 3D dimensional layers and ambient halo', () => {
-      assert.ok(indexHtml.includes('class="brand-3d-halo"'));
-      assert.ok(indexHtml.includes('class="brand-3d-stage"'));
-      assert.ok(indexHtml.includes('class="brand-layer brand-layer-base"'));
-      assert.ok(indexHtml.includes('class="brand-layer brand-layer-grid"'));
-      assert.ok(indexHtml.includes('class="brand-layer brand-layer-core"'));
-      assert.ok(indexHtml.includes('class="brand-layer brand-layer-glyph"'));
-      assert.ok(indexHtml.includes('class="brand-layer brand-layer-sheen"'));
-      assert.ok(indexHtml.includes('class="brand-layer brand-layer-bezel"'));
+    it('contains semantic 2D SVG brand mark elements and geometry', () => {
+      assert.ok(indexHtml.includes('class="brand-2d-svg'));
+      assert.ok(indexHtml.includes('class="brand-badge-bg"'));
+      assert.ok(indexHtml.includes('class="brand-ring-outer"'));
+      assert.ok(indexHtml.includes('class="brand-ring-inner"'));
+      assert.ok(indexHtml.includes('class="brand-sentiment-arc"'));
+      assert.ok(indexHtml.includes('class="brand-pulse-wave"'));
+      assert.ok(indexHtml.includes('class="brand-wave-highlight"'));
+      assert.ok(indexHtml.includes('class="brand-beacon-aura"'));
+      assert.ok(indexHtml.includes('class="brand-beacon-node"'));
+      assert.ok(indexHtml.includes('class="brand-beacon-core"'));
     });
 
-    it('contains precision SVG dimensional lightning bolt and tech circuit grid', () => {
-      assert.ok(indexHtml.includes('class="brand-glyph-svg'));
-      assert.ok(indexHtml.includes('id="sidebar-bolt-fill"'));
-      assert.ok(indexHtml.includes('id="sidebar-bolt-bevel"'));
-      assert.ok(indexHtml.includes('id="sidebar-grid-grad"'));
-      assert.ok(indexHtml.includes('d="M13.5 1.5L3.5 13H11.5L9.5 22.5L20.5 10.5H12.5L13.5 1.5Z"'));
+    it('contains brand gradient defs for high-fidelity 2D color harmony', () => {
+      assert.ok(indexHtml.includes('id="brand-bg-grad"'));
+      assert.ok(indexHtml.includes('id="brand-border-grad"'));
+      assert.ok(indexHtml.includes('id="brand-ring-grad"'));
+      assert.ok(indexHtml.includes('id="brand-wave-grad"'));
+      assert.ok(indexHtml.includes('id="brand-highlight-grad"'));
+      assert.ok(indexHtml.includes('id="brand-sentiment-grad"'));
+      assert.ok(indexHtml.includes('id="brand-beacon-glow"'));
     });
 
     it('upgrades brand typography with high-contrast text and pulse gradient', () => {
@@ -64,8 +68,8 @@ describe('3D Brand Logo & Premium Typography Subsystem', () => {
       assert.ok(indexHtml.includes('SentimentPulse'));
     });
 
-    it('provides consistent 3D brand marks across mobile header and drawer', () => {
-      assert.ok(indexHtml.includes('class="brand-3d-container mobile-size'));
+    it('provides consistent 2D brand marks across mobile header and drawer', () => {
+      assert.ok(indexHtml.includes('class="brand-2d-container mobile-size'));
       // Count brand-header-link occurrences (desktop sidebar, mobile bar, mobile drawer = 3)
       const count = (indexHtml.match(/class="brand-header-link/g) || []).length;
       assert.equal(
@@ -76,51 +80,49 @@ describe('3D Brand Logo & Premium Typography Subsystem', () => {
     });
   });
 
-  describe('CSS 3D Engine & Styling Tokens', () => {
-    it('defines hardware-accelerated 3D perspective and stage styling in app.css', () => {
-      assert.ok(appCss.includes('.brand-3d-container {'));
-      assert.ok(appCss.includes('perspective: 600px;'));
-      assert.ok(appCss.includes('transform-style: preserve-3d;'));
-      assert.ok(appCss.includes('.brand-3d-stage {'));
-      assert.ok(appCss.includes('@keyframes brand-float-3d {'));
+  describe('CSS 2D Engine & Styling Tokens', () => {
+    it('is strictly 2D without 3D perspective or dimensional translateZ on the logo', () => {
+      assert.ok(!appCss.includes('perspective: 600px;'));
+      assert.ok(!appCss.includes('transform-style: preserve-3d;'));
+      assert.ok(!appCss.includes('translateZ('));
+      assert.ok(!appCss.includes('@keyframes brand-float-3d'));
     });
 
-    it('defines dimensional Z-axis layering for depth separation', () => {
-      assert.ok(appCss.includes('.brand-layer-base {'));
-      assert.ok(appCss.includes('translateZ(0px)'));
-      assert.ok(appCss.includes('.brand-layer-grid {'));
-      assert.ok(appCss.includes('translateZ(5px)'));
-      assert.ok(appCss.includes('.brand-layer-core {'));
-      assert.ok(appCss.includes('translateZ(10px)'));
-      assert.ok(appCss.includes('.brand-layer-glyph {'));
-      assert.ok(appCss.includes('translateZ(16px)'));
-      assert.ok(appCss.includes('.brand-layer-sheen {'));
-      assert.ok(appCss.includes('translateZ(22px)'));
-      assert.ok(appCss.includes('.brand-layer-bezel {'));
-      assert.ok(appCss.includes('translateZ(24px)'));
+    it('defines 2D container sizing and hover micro-interactions in app.css', () => {
+      assert.ok(appCss.includes('.brand-2d-container'));
+      assert.ok(appCss.includes('.brand-2d-container.mobile-size'));
+      assert.ok(appCss.includes('.brand-header-link:hover .brand-2d-container'));
     });
 
-    it('defines radial nebula breathing halo and core plasma pulse keyframes', () => {
-      assert.ok(appCss.includes('@keyframes brand-halo-breathe {'));
-      assert.ok(appCss.includes('@keyframes brand-core-pulse {'));
+    it('defines 2D keyframe animations for waveform, rings, sentiment arc, and beacon', () => {
+      assert.ok(appCss.includes('@keyframes brand-wave-travel {'));
+      assert.ok(appCss.includes('@keyframes brand-ring-breathe {'));
+      assert.ok(appCss.includes('@keyframes brand-sentiment-breathe {'));
+      assert.ok(appCss.includes('@keyframes brand-beacon-pulse {'));
+      assert.ok(appCss.includes('@keyframes brand-aura-pulse {'));
       assert.ok(appCss.includes('.brand-pulse-gradient {'));
     });
 
-    it('provides accessible prefers-reduced-motion overrides', () => {
+    it('provides accessible prefers-reduced-motion overrides disabling animation', () => {
       assert.ok(appCss.includes('@media (prefers-reduced-motion: reduce)'));
-      assert.ok(appCss.includes('.brand-3d-stage {\n    animation: none !important;'));
-      assert.ok(appCss.includes('transform: rotateX(5deg) rotateY(-6deg) !important;'));
+      assert.ok(appCss.includes('animation: none !important;'));
+      assert.ok(
+        appCss.includes(
+          '.brand-wave-highlight {\n    animation: none !important;\n    display: none !important;'
+        )
+      );
     });
 
     it('provides document hidden battery saver state', () => {
-      assert.ok(appCss.includes('.brand-3d-paused .brand-3d-stage'));
+      assert.ok(appCss.includes('.brand-2d-paused'));
       assert.ok(appCss.includes('animation-play-state: paused !important;'));
     });
   });
 
-  describe('MicroInteractions Parallax & Lifecycle', () => {
-    it('exposes initBrandLogoParallax method on MicroInteractions', () => {
+  describe('MicroInteractions Lifecycle & Compatibility', () => {
+    it('exposes initBrandLogoParallax and initBrandLogo on MicroInteractions', () => {
       assert.equal(typeof MicroInteractions.initBrandLogoParallax, 'function');
+      assert.equal(typeof MicroInteractions.initBrandLogo, 'function');
     });
 
     it('safely executes init and destroy in non-browser Node environment', () => {
@@ -131,7 +133,7 @@ describe('3D Brand Logo & Premium Typography Subsystem', () => {
       assert.equal(MicroInteractions._brandCleanups.length, 0);
     });
 
-    it('does not apply interactive tilt when reduced motion is active', () => {
+    it('respects reduced-motion setting in AnimationManager', () => {
       AnimationManager.setReducedMotion(true);
       assert.equal(AnimationManager.isReducedMotion(), true);
       // Clean up state
