@@ -325,22 +325,41 @@ const AnalyzeController = {
 
     try {
       let result;
+      let persistenceSucceeded = false;
+
       if (shouldSave) {
-        result = await window.api.createFeedback({
-          text,
-          category: category || null,
-          source: source || 'web',
-          rating: rating || null,
-        });
-        window.showToast(`Feedback saved to database (#${result.id})!`, 'success');
-        window.dispatchEvent(new CustomEvent('feedback-created', { detail: result }));
+        try {
+          result = await window.api.createFeedback({
+            text,
+            category: category || null,
+            source: source || 'web',
+            rating: rating || null,
+          });
+          persistenceSucceeded = true;
+          window.showToast(`Feedback saved to database (#${result.id})!`, 'success');
+          window.dispatchEvent(new CustomEvent('feedback-created', { detail: result }));
+        } catch (saveErr) {
+          console.error('[FeedbackPersistenceError]', {
+            endpoint: '/feedback',
+            status: saveErr.status || 500,
+            requestId: saveErr.requestId || null,
+            message: saveErr.message || 'Failed to persist feedback record.',
+          });
+          // Attempt inference fallback so user does not lose the sentiment analysis result
+          try {
+            result = await window.api.predict(text);
+            window.showToast('Failed to save feedback. Please try again.', 'warning');
+          } catch {
+            throw saveErr;
+          }
+        }
       } else {
         result = await window.api.predict(text);
         window.showToast('Sentiment predicted successfully!', 'success');
       }
 
       const elapsed = Math.round(performance.now() - t0);
-      this.displayResults(result, elapsed, shouldSave);
+      this.displayResults(result, elapsed, persistenceSucceeded);
 
       // Persist to local IndexedDB history (Phase 2)
       if (window.historyStore && typeof window.historyStore.addEntry === 'function') {
@@ -359,7 +378,7 @@ const AnalyzeController = {
             confidence: result.confidence,
             scores,
             source: source || 'web',
-            feedbackId: shouldSave && result.id ? result.id : null,
+            feedbackId: persistenceSucceeded && result.id ? result.id : null,
           });
           window.dispatchEvent(new CustomEvent('history-updated'));
         } catch (storeErr) {

@@ -28,6 +28,9 @@ class FeedbackService:
         prediction = sentiment_service.predict(payload.text)
         scores = prediction.get("scores", {})
 
+        clean_category = payload.category.strip() if payload.category and payload.category.strip() else None
+        clean_source = payload.source.strip() if payload.source and payload.source.strip() else "web"
+
         feedback = Feedback(
             user_id=None,
             text=payload.text,
@@ -37,18 +40,23 @@ class FeedbackService:
             positive_score=float(scores.get("positive", 0.0)),
             neutral_score=float(scores.get("neutral", 0.0)),
             negative_score=float(scores.get("negative", 0.0)),
-            category=payload.category,
-            source=payload.source or "web",
+            category=clean_category,
+            source=clean_source,
             rating=payload.rating,
             model_version="3.0.0",
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc)
         )
-        db.add(feedback)
-        db.commit()
-        db.refresh(feedback)
-        logger.info(f"Persisted feedback {feedback.id} with sentiment '{feedback.sentiment}'.")
-        return feedback
+        try:
+            db.add(feedback)
+            db.commit()
+            db.refresh(feedback)
+            logger.info(f"Persisted feedback {feedback.id} with sentiment '{feedback.sentiment}'.")
+            return feedback
+        except Exception as exc:
+            db.rollback()
+            logger.error(f"Failed to persist feedback in database: {exc}", exc_info=True)
+            raise
 
     @staticmethod
     def get_feedback_by_id(db: Session, feedback_id: int) -> Optional[Feedback]:

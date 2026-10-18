@@ -112,4 +112,62 @@ describe('API Cold-Start & Retry Handling', () => {
     assert.equal(callCount, 2);
     assert.equal(res.status, 'ok');
   });
+
+  test('propagates status, requestId and detail on 500 persistence failure', async () => {
+    globalThis.fetch = async () => {
+      return {
+        ok: false,
+        status: 500,
+        headers: new Headers({
+          'content-type': 'application/json',
+          'X-Request-ID': 'test-trace-id-12345',
+        }),
+        json: async () => ({ detail: 'Failed to persist feedback record.' }),
+      };
+    };
+
+    await assert.rejects(
+      async () => {
+        await api.createFeedback({
+          text: 'she is so good',
+          source: 'web',
+        });
+      },
+      (err) => {
+        assert.equal(err.message, 'Failed to persist feedback record.');
+        assert.equal(err.status, 500);
+        assert.equal(err.requestId, 'test-trace-id-12345');
+        return true;
+      }
+    );
+  });
+
+  test('creates feedback successfully and parses response', async () => {
+    globalThis.fetch = async () => {
+      return {
+        ok: true,
+        status: 201,
+        headers: new Headers({
+          'content-type': 'application/json',
+          'X-Request-ID': 'success-req-123',
+        }),
+        json: async () => ({
+          id: 1099,
+          text: 'she is so good',
+          sentiment: 'positive',
+          confidence: 0.97,
+        }),
+      };
+    };
+
+    const res = await api.createFeedback({
+      text: 'she is so good',
+      category: null,
+      source: 'web',
+      rating: null,
+    });
+
+    assert.equal(res.id, 1099);
+    assert.equal(res.sentiment, 'positive');
+  });
 });

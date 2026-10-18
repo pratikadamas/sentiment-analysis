@@ -31,8 +31,13 @@ def _create_feedback_handler(payload: FeedbackCreate, db: Session):
         feedback = FeedbackService.create_feedback(db, payload)
         return FeedbackResponse.from_orm_model(feedback)
     except ValueError as ve:
+        db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
+        db.rollback()
         logger.error(f"Error persisting feedback: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

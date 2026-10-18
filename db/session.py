@@ -51,22 +51,122 @@ def get_db() -> Generator[Session, None, None]:
 def _migrate_schema() -> None:
     """
     Inspects database tables and ensures schema synchronization.
+    Safely reconciles nullable user_id and drops dangling foreign keys on both SQLite and PostgreSQL.
     """
     try:
         inspector = inspect(engine)
         tables = inspector.get_table_names()
+        latest_revision = "d5f3a1829e01"
 
-        # Synchronize Alembic migration state if alembic is present
+        if is_sqlite:
+            # Check for dangling foreign keys referencing dropped 'users' table
+            for tbl in ["feedback", "import_jobs"]:
+                if tbl in tables:
+                    fks = inspector.get_foreign_keys(tbl)
+                    has_users_fk = any(fk.get("referred_table") == "users" for fk in fks)
+                    if has_users_fk:
+                        logger.info(f"Self-healing SQLite schema: dropping dangling users foreign key from {tbl}...")
+                        with engine.begin() as conn:
+                            conn.execute(text("PRAGMA foreign_keys = OFF"))
+                            if tbl == "feedback":
+                                conn.execute(text("""
+                                    CREATE TABLE feedback_clean (
+                                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                                        user_id INTEGER,
+                                        text TEXT NOT NULL,
+                                        clean_text TEXT,
+                                        sentiment VARCHAR(20) NOT NULL,
+                                        confidence FLOAT NOT NULL,
+                                        positive_score FLOAT NOT NULL DEFAULT 0.0,
+                                        neutral_score FLOAT NOT NULL DEFAULT 0.0,
+                                        negative_score FLOAT NOT NULL DEFAULT 0.0,
+                                        category VARCHAR(50),
+                                        source VARCHAR(50),
+                                        rating INTEGER,
+                                        model_version VARCHAR(30) NOT NULL DEFAULT '3.0.0',
+                                        created_at DATETIME NOT NULL,
+                                        updated_at DATETIME NOT NULL
+                                    )
+                                """))
+                                conn.execute(text("""
+                                    INSERT INTO feedback_clean (
+                                        id, user_id, text, clean_text, sentiment, confidence,
+                                        positive_score, neutral_score, negative_score, category, source, rating,
+                                        model_version, created_at, updated_at
+                                    )
+                                    SELECT
+                                        id, user_id, text, clean_text, sentiment, confidence,
+                                        positive_score, neutral_score, negative_score, category, source, rating,
+                                        model_version, created_at, updated_at
+                                    FROM feedback
+                                """))
+                                conn.execute(text("DROP TABLE feedback"))
+                                conn.execute(text("ALTER TABLE feedback_clean RENAME TO feedback"))
+                                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_feedback_id ON feedback (id)"))
+                                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_feedback_user_id ON feedback (user_id)"))
+                                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_feedback_sentiment ON feedback (sentiment)"))
+                                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_feedback_category ON feedback (category)"))
+                                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_feedback_source ON feedback (source)"))
+                                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_feedback_created_at ON feedback (created_at)"))
+                            elif tbl == "import_jobs":
+                                conn.execute(text("""
+                                    CREATE TABLE import_jobs_clean (
+                                        id VARCHAR(36) NOT NULL PRIMARY KEY,
+                                        user_id INTEGER,
+                                        filename VARCHAR(255) NOT NULL,
+                                        total_rows INTEGER NOT NULL DEFAULT 0,
+                                        processed_rows INTEGER NOT NULL DEFAULT 0,
+                                        successful_rows INTEGER NOT NULL DEFAULT 0,
+                                        failed_rows INTEGER NOT NULL DEFAULT 0,
+                                        status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+                                        error_summary TEXT,
+                                        created_at DATETIME NOT NULL,
+                                        completed_at DATETIME
+                                    )
+                                """))
+                                conn.execute(text("""
+                                    INSERT INTO import_jobs_clean (
+                                        id, user_id, filename, total_rows, processed_rows,
+                                        successful_rows, failed_rows, status, error_summary, created_at, completed_at
+                                    )
+                                    SELECT
+                                        id, user_id, filename, total_rows, processed_rows,
+                                        successful_rows, failed_rows, status, error_summary, created_at, completed_at
+                                    FROM import_jobs
+                                """))
+                                conn.execute(text("DROP TABLE import_jobs"))
+                                conn.execute(text("ALTER TABLE import_jobs_clean RENAME TO import_jobs"))
+                                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_import_jobs_id ON import_jobs (id)"))
+                                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_import_jobs_user_id ON import_jobs (user_id)"))
+                                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_import_jobs_status ON import_jobs (status)"))
+                            conn.execute(text("PRAGMA foreign_keys = ON"))
+        else:
+            # PostgreSQL schema synchronization
+            with engine.begin() as conn:
+                for tbl in ["feedback", "import_jobs"]:
+                    if tbl in tables:
+                        fks = inspector.get_foreign_keys(tbl)
+                        for fk in fks:
+                            if fk.get("referred_table") == "users" and fk.get("name"):
+                                conn.execute(text(f"ALTER TABLE {tbl} DROP CONSTRAINT IF EXISTS {fk['name']}"))
+                        try:
+                            conn.execute(text(f"ALTER TABLE {tbl} ALTER COLUMN user_id DROP NOT NULL"))
+                        except Exception as col_err:
+                            logger.debug(f"Column nullable check on {tbl}.user_id: {col_err}")
+
+        # Synchronize Alembic migration state
         if "alembic_version" in tables:
             with engine.begin() as conn:
                 res = conn.execute(text("SELECT version_num FROM alembic_version")).fetchone()
                 if not res:
-                    conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('c4e2f187a912')"))
+                    conn.execute(text(f"INSERT INTO alembic_version (version_num) VALUES ('{latest_revision}')"))
+                elif res[0] in ("992b8e22d756", "b5f1a9238de4", "c4e2f187a912"):
+                    conn.execute(text(f"UPDATE alembic_version SET version_num = '{latest_revision}'"))
         else:
             try:
                 with engine.begin() as conn:
                     conn.execute(text("CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)"))
-                    conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('c4e2f187a912')"))
+                    conn.execute(text(f"INSERT INTO alembic_version (version_num) VALUES ('{latest_revision}')"))
             except Exception as alembic_err:
                 logger.debug(f"Alembic version table initialization skipped: {alembic_err}")
 
